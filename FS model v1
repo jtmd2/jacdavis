@@ -27,8 +27,8 @@ library(rpart.plot)
 library(RColorBrewer)
 
 # google api key for map data
-# register_google(key = "AIzaSyA4kvprW0CVj6BmjqaTOZZQ9vZK73TWFvw")
-# register_google(key = "AIzaSyBc_8LjJJrs1igirbCq4TvpGZFJuHrSBm8")
+# register_google(key = "")
+# register_google(key = "")
 
 # functions
 
