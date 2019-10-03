@@ -570,3 +570,1028 @@ cat("P(low food security |
     low property market value) =", cpquery(bn.mod, 
                                            (FS_tgt=="1"), 
                                            (property_market_value_f == "low")), "\n")
+                                           
+                                           
+# create an empty graph based on datBN
+structure <- empty.graph(c("tgt",
+                           "household_characteristics",
+                           "infrastructure",
+                           "home_food_production",
+                           "demographics",
+                           "housing",
+                           "expenditure",
+                           "income",
+                           "wealth",
+                           "household_assets",
+                           "environment",
+                           "communication",
+                           "waste",
+                           "transport",
+                           "sanitation",
+                           "water",
+                           "energy",
+                           "agricultural_activities",
+                           "agricultural_assets",
+                           "agricultural_production",
+                           "gender_dummy",
+                           "ethnicity_dummy",
+                           "age_rescaled",
+                           "language_dummy",
+                           "city",
+                           "dwelling_dummy",
+                           "wall_dummy",
+                           "wall_condition_dummy",
+                           "roof_dummy",
+                           "roof_condition_dummy",
+                           "rooms_rescaled",
+                           "kitchen_dummy",
+                           "subsidy_dummy",
+                           "expenditure_dummy",
+                           "income_salary_dummy",
+                           "income_min_rescaled",
+                           "income_vs_min_dummy",
+                           "income_grants_dummy",
+                           "vehicle_dummy",
+                           "radio_dummy",
+                           "domestic_worker_dummy",
+                           "land_grant_residence_dummy",
+                           "land_grant_farm_dummy",
+                           "wealth_dummy",
+                           "happiness_dummy",
+                           "TV_dummy",
+                           "pool_dummy",
+                           "DVD_dummy",
+                           "payTV_dummy",
+                           "aircon_dummy",
+                           "computer_dummy",
+                           "vacuum_dummy",
+                           "dishwasher_dummy",
+                           "washer_dummy",
+                           "dryer_dummy",
+                           "freezer_dummy",
+                           "fridge_dummy",
+                           "stove_dummy",
+                           "microwave_dummy",
+                           "sink_dummy",
+                           "security_dummy",
+                           "theatre_dummy",
+                           "hotwater_dummy",
+                           "solwater_dummy",
+                           "solpower_dummy",
+                           "waste_not_removed_dummy",
+                           "litter_dummy",
+                           "water_pollution_dummy",
+                           "air_pollution_dummy",
+                           "land_degrad_dummy",
+                           "excess_noise_dummy",
+                           "other_pollution_dummy",
+                           "pesticides_dwelling_dummy",
+                           "pesticides_garden_dummy",
+                           "herbicides_garden_dummy",
+                           "telephone_dummy",
+                           "mobile_dummy",
+                           "internet_dummy",
+                           "mail_dummy",
+                           "no_mail_dummy",
+                           "waste_removal_dummy",
+                           "minibus_use_dummy",
+                           "minibus_distance_rescaled",
+                           "bus_use_dummy",
+                           "bus_distance_rescaled",
+                           "train_use_dummy",
+                           "train_distance_rescaled",
+                           "flush_toilet_dummy",
+                           "shared_toilet_dummy",
+                           "inside_toilet_dummy",
+                           "drinking_water_dummy",
+                           "municipal_water_dummy",
+                           "municipal_electricity_dummy",
+                           "inhouse_electricity_dummy",
+                           "blackouts_dummy",
+                           "energy_cooking_dummy",
+                           "farming_main_income",
+                           "sell_agri_products_dummy",
+                           "agri_training_dummy",
+                           "agri_extension_dummy",
+                           "agri_grants_dummy",
+                           "agri_loans_dummy",
+                           "agri_loan_inputs_dummy",
+                           "agri_loan_free_dummy",
+                           "agri_dips_dummy",
+                           "govt_agri_assistance_dummy",
+                           "nongovt_agri_assistance_dummy",
+                           "cattle_dummy",
+                           "sheep_dummy",
+                           "goats_dummy",
+                           "pigs_dummy",
+                           "chickens_dummy",
+                           "farmland_dummy",
+                           "backyard_garden_dummy",
+                           "school_garden_dummy",
+                           "communal_garden_dummy",
+                           "verge_garden_dummy",
+                           "productive_land_size_dummy",
+                           "productive_land_access_dummy",
+                           "livestock_prod_dummy",
+                           "poultry_prod_dummy",
+                           "foodcrop_prod_dummy",
+                           "industrial_crop_prod_dummy",
+                           "fruit_veg_prod_dummy",
+                           "fodder_prod_dummy",
+                           "fish_prod_dummy",
+                           "forestry_prod_dummy",
+                           "game_prod_dummy",
+                           "other_prod_dummy"))
+
+# set relationships manually based on HH survey structure (later: based on PCA)
+modelstring(structure) <- paste0("[tgt|household_characteristics:infrastructure:home_food_production]",
+                                 "[household_characteristics|demographics:expenditure:income:wealth:housing:household_assets]",
+                                 "[infrastructure|environment:communication:waste:transport:sanitation:water:energy]",
+                                 "[home_food_production|agricultural_activities:agricultural_assets:agricultural_production]",
+                                 "[demographics|gender_dummy:ethnicity_dummy:age_rescaled:language_dummy]",
+                                 "[housing|city:dwelling_dummy:wall_dummy:wall_condition_dummy:roof_dummy:roof_condition_dummy:rooms_rescaled:kitchen_dummy:subsidy_dummy]",
+                                 "[expenditure|expenditure_dummy]",
+                                 "[income|income_salary_dummy:income_min_rescaled:income_vs_min_dummy:income_grants_dummy]",
+                                 "[wealth|vehicle_dummy:radio_dummy:domestic_worker_dummy:land_grant_residence_dummy:land_grant_farm_dummy:wealth_dummy:happiness_dummy]",
+                                 "[household_assets|TV_dummy:pool_dummy:DVD_dummy:payTV_dummy:aircon_dummy:computer_dummy:vacuum_dummy:dishwasher_dummy:washer_dummy:dryer_dummy:freezer_dummy:fridge_dummy:stove_dummy:microwave_dummy:sink_dummy:security_dummy:theatre_dummy:hotwater_dummy:solwater_dummy:solpower_dummy]",
+                                 "[environment|waste_not_removed_dummy:litter_dummy:water_pollution_dummy:air_pollution_dummy:land_degrad_dummy:excess_noise_dummy:other_pollution_dummy:pesticides_dwelling_dummy:pesticides_garden_dummy:herbicides_garden_dummy]",
+                                 "[communication|telephone_dummy:mobile_dummy:internet_dummy:mail_dummy:no_mail_dummy]",
+                                 "[waste|waste_removal_dummy]",
+                                 "[transport|minibus_use_dummy:minibus_distance_rescaled:bus_use_dummy:bus_distance_rescaled:train_use_dummy:train_distance_rescaled]",
+                                 "[sanitation|flush_toilet_dummy:shared_toilet_dummy:inside_toilet_dummy]",
+                                 "[water|drinking_water_dummy:municipal_water_dummy]",
+                                 "[energy|municipal_electricity_dummy:inhouse_electricity_dummy:blackouts_dummy:energy_cooking_dummy]",
+                                 "[agricultural_activities|farming_main_income:sell_agri_products_dummy:agri_training_dummy:agri_extension_dummy:agri_grants_dummy:agri_loans_dummy:agri_loan_inputs_dummy:agri_loan_free_dummy:agri_dips_dummy:govt_agri_assistance_dummy:nongovt_agri_assistance_dummy]",
+                                 "[agricultural_assets|cattle_dummy:sheep_dummy:goats_dummy:pigs_dummy:chickens_dummy:farmland_dummy:backyard_garden_dummy:school_garden_dummy:communal_garden_dummy:verge_garden_dummy:productive_land_size_dummy:productive_land_access_dummy]",
+                                 "[agricultural_production|livestock_prod_dummy:poultry_prod_dummy:foodcrop_prod_dummy:industrial_crop_prod_dummy:fruit_veg_prod_dummy:fodder_prod_dummy:fish_prod_dummy:forestry_prod_dummy:game_prod_dummy:other_prod_dummy]",
+                                 "[gender_dummy]",
+                                 "[ethnicity_dummy]",
+                                 "[age_rescaled]",
+                                 "[language_dummy]",
+                                 "[city]",
+                                 "[dwelling_dummy]",
+                                 "[wall_dummy]",
+                                 "[wall_condition_dummy]",
+                                 "[roof_dummy]",
+                                 "[roof_condition_dummy]",
+                                 "[rooms_rescaled]",
+                                 "[kitchen_dummy]",
+                                 "[subsidy_dummy]",
+                                 "[expenditure_dummy]",
+                                 "[income_salary_dummy]",
+                                 "[income_min_rescaled]",
+                                 "[income_vs_min_dummy]",
+                                 "[income_grants_dummy]",
+                                 "[vehicle_dummy]",
+                                 "[radio_dummy]",
+                                 "[domestic_worker_dummy]",
+                                 "[land_grant_residence_dummy]",
+                                 "[land_grant_farm_dummy]",
+                                 "[wealth_dummy]",
+                                 "[happiness_dummy]",
+                                 "[TV_dummy]",
+                                 "[pool_dummy]",
+                                 "[DVD_dummy]",
+                                 "[payTV_dummy]",
+                                 "[aircon_dummy]",
+                                 "[computer_dummy]",
+                                 "[vacuum_dummy]",
+                                 "[dishwasher_dummy]",
+                                 "[washer_dummy]",
+                                 "[dryer_dummy]",
+                                 "[freezer_dummy]",
+                                 "[fridge_dummy]",
+                                 "[stove_dummy]",
+                                 "[microwave_dummy]",
+                                 "[sink_dummy]",
+                                 "[security_dummy]",
+                                 "[theatre_dummy]",
+                                 "[hotwater_dummy]",
+                                 "[solwater_dummy]",
+                                 "[solpower_dummy]",
+                                 "[waste_not_removed_dummy]",
+                                 "[litter_dummy]",
+                                 "[water_pollution_dummy]",
+                                 "[air_pollution_dummy]",
+                                 "[land_degrad_dummy]",
+                                 "[excess_noise_dummy]",
+                                 "[other_pollution_dummy]",
+                                 "[pesticides_dwelling_dummy]",
+                                 "[pesticides_garden_dummy]",
+                                 "[herbicides_garden_dummy]",
+                                 "[telephone_dummy]",
+                                 "[mobile_dummy]",
+                                 "[internet_dummy]",
+                                 "[mail_dummy]",
+                                 "[no_mail_dummy]",
+                                 "[waste_removal_dummy]",
+                                 "[minibus_use_dummy]",
+                                 "[minibus_distance_rescaled]",
+                                 "[bus_use_dummy]",
+                                 "[bus_distance_rescaled]",
+                                 "[train_use_dummy]",
+                                 "[train_distance_rescaled]",
+                                 "[flush_toilet_dummy]",
+                                 "[shared_toilet_dummy]",
+                                 "[inside_toilet_dummy]",
+                                 "[drinking_water_dummy]",
+                                 "[municipal_water_dummy]",
+                                 "[municipal_electricity_dummy]",
+                                 "[inhouse_electricity_dummy]",
+                                 "[blackouts_dummy]",
+                                 "[energy_cooking_dummy]",
+                                 "[farming_main_income]",
+                                 "[shared_toilet_dummy]",
+                                 "[sell_agri_products_dummy]",
+                                 "[agri_training_dummy]",
+                                 "[agri_extension_dummy]",
+                                 "[agri_grants_dummy]",
+                                 "[agri_loans_dummy]",
+                                 "[agri_loan_inputs_dummy]",
+                                 "[agri_loan_free_dummy]",
+                                 "[agri_dips_dummy]",
+                                 "[govt_agri_assistance_dummy]",
+                                 "[nongovt_agri_assistance_dummy]",
+                                 "[cattle_dummy]",
+                                 "[sheep_dummy]",
+                                 "[goats_dummy]",
+                                 "[pigs_dummy]",
+                                 "[chickens_dummy]",
+                                 "[farmland_dummy]",
+                                 "[backyard_garden_dummy]",
+                                 "[school_garden_dummy]",
+                                 "[communal_garden_dummy]",
+                                 "[verge_garden_dummy]",
+                                 "[productive_land_size_dummy]",
+                                 "[productive_land_access_dummy]",
+                                 "[livestock_prod_dummy]",
+                                 "[poultry_prod_dummy]",
+                                 "[foodcrop_prod_dummy]",
+                                 "[industrial_crop_prod_dummy]",
+                                 "[fruit_veg_prod_dummy]",
+                                 "[fodder_prod_dummy]",
+                                 "[fish_prod_dummy]",
+                                 "[forestry_prod_dummy]",
+                                 "[game_prod_dummy]",
+                                 "[other_prod_dummy]")
+
+
+# prototype food security model at suburb level
+
+# load libraries
+library(bnlearn)
+library(visNetwork)
+library(ggplot2)
+library(reshape2)
+
+# load functions (later run from other script)
+# check if point between two bounds - courtesy mrip
+`%between%`<- function(x,rng) x>rng[1] & x<rng[2]
+# function for plot themes
+ILRItheme <- function(){
+  theme_light() +
+    theme(plot.title = element_text(size = 13, color = "gray30"),
+          plot.subtitle = element_text(size = 11, color = "black"),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          #          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text.x = element_text(size = 9, color = "gray10"),
+          axis.text.y = element_text(size = 9, color = "gray10"))
+}
+
+# Food Security BN
+
+# load cleaned data
+survey <- read.csv("E:\\Food4Cities\\iterative model\\model v1\\household survey food utilisation data - cleaned with dummy vars.csv")
+
+# create DVs
+datBN <- survey
+
+# Household Dietary Diversity score: score 1/0 for each food group eaten at least once in past 24 hours and sum them  
+datBN$cereals <- as.numeric(datBN$diet_cereals>0)
+datBN$potatoes <- as.numeric(datBN$diet_potatoes>0)
+datBN$beans <- as.numeric(datBN$diet_beans>0)
+datBN$greens <- as.numeric(datBN$diet_greens>0)
+datBN$vegetables <- as.numeric(datBN$diet_vegetables>0)
+datBN$fruit <- as.numeric(datBN$diet_fruit>0)
+datBN$meat <- as.numeric(datBN$diet_meat>0)
+datBN$dairy <- as.numeric(datBN$diet_dairy>0)
+datBN$sugar <- as.numeric(datBN$diet_sugar>0)
+datBN$fat <- as.numeric(datBN$diet_fat>0)
+  
+datBN$HDDS <- rowSums(datBN[c("cereals",
+                            "potatoes",
+                            "beans",
+                            "greens",
+                            "vegetables",
+                            "fruit",
+                            "meat",
+                            "dairy",
+                            "sugar",
+                            "fat")], na.rm=TRUE)
+
+# IFPRI recommends a score of < 4.5 as low dietary diversity: recode to P(low dietary diversity)
+datBN$low_dietary_diversity <- as.numeric(datBN$HDDS<4.5)
+
+# also, for completeness: fruit and/or vegetables at least once in past 24 hours, and animal-source food at least once in past 24 hours
+datBN$ate_fruit_or_veg <- ifelse(datBN$fruit>0, 1, ifelse(datBN$vegetables>0, 1, ifelse(datBN$greens>0, 1, 0)))
+datBN$animal_source_foods <- ifelse(datBN$meat>0, 1, ifelse(datBN$dairy>0, 1, 0))
+datBN$sugar_fat <- ifelse(datBN$sugar>0, 1, ifelse(datBN$fat>0, 1, 0))
+
+# Food Insecurity Experience Scale: 
+# raw score (integer 0-8)
+# P(moderate or severe food insecurity) = any of FS indicators in last 12 months
+# P(acute food insecurity) = any of FS indicators >5 times in last 30 days
+
+datBN$FS_1 <- as.numeric(datBN$food_security_adult_hungry!="Never")
+datBN$FS_2 <- as.numeric(datBN$food_security_child_hungry!="Never")
+datBN$FS_3 <- as.numeric(datBN$food_security_out_of_money_in12mths=="Yes")
+datBN$FS_4 <- as.numeric(datBN$food_security_out_of_money_5in30days=="Yes")
+datBN$FS_5 <- as.numeric(datBN$food_security_cut_meals_in12mths=="Yes")
+datBN$FS_6 <- as.numeric(datBN$food_security_cut_meals_5in30days=="Yes")
+datBN$FS_7 <- as.numeric(datBN$food_security_skip_meals_in12mths=="Yes")
+datBN$FS_8 <- as.numeric(datBN$food_security_skip_meals_5in30days=="Yes")
+datBN$FS_9 <- as.numeric(datBN$food_security_smaller_variety_in12mths=="Yes")
+datBN$FS_10 <- as.numeric(datBN$food_security_smaller_variety_5in30days=="Yes")
+
+datBN$FS_rawscore <- rowSums(datBN[c("FS_1",
+                               "FS_2",
+                               "FS_3",
+                               "FS_4",
+                               "FS_5",
+                               "FS_6",
+                               "FS_7",
+                               "FS_8",
+                               "FS_9",
+                               "FS_10")], na.rm=TRUE)
+
+
+datBN$FS_12_months <- ifelse(datBN$FS_3==1,1,
+                             ifelse(datBN$FS_5==1,1,
+                                    ifelse(datBN$FS_7==1,1,
+                                           ifelse(datBN$FS_9==1,1,0))))
+
+datBN$FS_30_days <- ifelse(datBN$FS_4==1,1,
+                          ifelse(datBN$FS_6==1,1,
+                                 ifelse(datBN$FS_8==1,1,
+                                        ifelse(datBN$FS_10==1,1,0))))
+
+
+#### bayesian network ####
+
+# choose outcome
+outcomes <- datBN[,c("low_dietary_diversity",
+              "ate_fruit_or_veg",
+              "animal_source_foods",
+              "sugar_fat",
+              "FS_rawscore",
+              "FS_12_months",
+              "FS_30_days")]
+
+datBN$tgt <- datBN$low_dietary_diversity
+
+# select variables for BN
+dattgt <- datBN[,c("tgt",
+                   "city",
+                   "gender_dummy",                           
+                   "ethnicity_dummy",
+                   "language_dummy",                         
+                   "age_rescaled",
+                   "dwelling_dummy",                         
+                   "wall_dummy",
+                   "wall_condition_dummy",                   
+                   "roof_dummy",
+                   "roof_condition_dummy",                   
+                   "rooms_rescaled",
+                   "kitchen_dummy",  
+                   "subsidy_dummy",                          
+                   "income_salary_dummy",                    
+                   "income_grants_dummy",
+                   "income_min_rescaled",                    
+                   "income_vs_min_dummy",
+                   "waste_removal_dummy",
+                   "expenditure_dummy",                      
+                   "vehicle_dummy",
+                   "radio_dummy",                            
+                   "domestic_worker_dummy",
+                   "land_grant_residence_dummy",             
+                   "land_grant_farm_dummy",
+                   "wealth_dummy",                           
+                   "happiness_dummy",
+                   "TV_dummy",                               
+                   "pool_dummy",
+                   "DVD_dummy",                              
+                   "payTV_dummy",
+                   "aircon_dummy",                           
+                   "computer_dummy",
+                   "vacuum_dummy",                           
+                   "dishwasher_dummy",
+                   "washer_dummy",                           
+                   "dryer_dummy",
+                   "freezer_dummy",                          
+                   "fridge_dummy",
+                   "stove_dummy",                            
+                   "microwave_dummy",
+                   "sink_dummy",                             
+                   "security_dummy",
+                   "theatre_dummy",                          
+                   "hotwater_dummy",
+                   "solwater_dummy",                         
+                   "solpower_dummy",
+                   "drinking_water_dummy",                   
+                   "municipal_water_dummy",
+                   "flush_toilet_dummy",                     
+                   "shared_toilet_dummy",
+                   "inside_toilet_dummy",                    
+                   "municipal_electricity_dummy",
+                   "inhouse_electricity_dummy",              
+                   "blackouts_dummy",
+                   "energy_cooking_dummy",                   
+                   "waste_not_removed_dummy",
+                   "litter_dummy",                           
+                   "water_pollution_dummy",
+                   "air_pollution_dummy",                    
+                   "land_degrad_dummy",
+                   "excess_noise_dummy",                     
+                   "other_pollution_dummy",
+                   "pesticides_dwelling_dummy",              
+                   "pesticides_garden_dummy",
+                   "herbicides_garden_dummy",                
+                   "telephone_dummy",
+                   "mobile_dummy",                           
+                   "internet_dummy",
+                   "mail_dummy",                             
+                   "no_mail_dummy",
+                   "minibus_use_dummy",                      
+                   "minibus_distance_rescaled",
+                   "bus_use_dummy",                          
+                   "bus_distance_rescaled",
+                   "train_use_dummy",                        
+                   "train_distance_rescaled",
+                   "livestock_prod_dummy",                   
+                   "poultry_prod_dummy",
+                   "foodcrop_prod_dummy",                    
+                   "industrial_crop_prod_dummy",
+                   "fruit_veg_prod_dummy",                   
+                   "fodder_prod_dummy",
+                   "fish_prod_dummy",                        
+                   "forestry_prod_dummy",
+                   "game_prod_dummy",                        
+                   "other_prod_dummy",
+                   "farming_main_income",                    
+                   "sell_agri_products_dummy",
+                   "agri_training_dummy",                    
+                   "agri_extension_dummy",
+                   "agri_grants_dummy",                      
+                   "agri_loans_dummy",
+                   "agri_loan_inputs_dummy",                 
+                   "agri_loan_free_dummy",
+                   "agri_dips_dummy",                        
+                   "govt_agri_assistance_dummy",
+                   "nongovt_agri_assistance_dummy",          
+                   "cattle_dummy",
+                   "goats_dummy",                            
+                   "sheep_dummy",
+                   "pigs_dummy",                             
+                   "chickens_dummy",
+                   "farmland_dummy",                         
+                   "backyard_garden_dummy",
+                   "school_garden_dummy",                    
+                   "communal_garden_dummy",
+                   "verge_garden_dummy",                     
+                   "productive_land_size_dummy",
+                   "productive_land_access_dummy")]
+
+# add latent variables - constant for now, add PCA/regression weights later
+dattgt$demographics <- rowSums(dattgt[c("gender_dummy",
+                                        "ethnicity_dummy",
+                                        "age_rescaled",
+                                        "language_dummy")], na.rm=TRUE)
+dattgt$expenditure <- dattgt$expenditure_dummy
+dattgt$income <- rowSums(dattgt[c("income_salary_dummy",
+                                  "income_min_rescaled",
+                                  "income_vs_min_dummy")], na.rm=TRUE)
+dattgt$wealth <- rowSums(dattgt[c("vehicle_dummy",
+                                  "radio_dummy",
+                                  "domestic_worker_dummy",
+                                  "land_grant_residence_dummy",
+                                  "land_grant_farm_dummy",
+                                  "wealth_dummy",
+                                  "happiness_dummy")], na.rm=TRUE)
+dattgt$housing <- rowSums(dattgt[c("dwelling_dummy",
+                                   "wall_dummy",
+                                   "wall_condition_dummy",
+                                   "roof_dummy",
+                                   "roof_condition_dummy",
+                                   "rooms_rescaled",
+                                   "kitchen_dummy",
+                                   "subsidy_dummy")], na.rm=TRUE)
+dattgt$household_assets <- rowSums(dattgt[c("TV_dummy",
+                                            "pool_dummy",
+                                            "DVD_dummy",
+                                            "payTV_dummy",
+                                            "aircon_dummy",
+                                            "computer_dummy",
+                                            "vacuum_dummy",
+                                            "dishwasher_dummy",
+                                            "washer_dummy",
+                                            "dryer_dummy",
+                                            "freezer_dummy",
+                                            "fridge_dummy",
+                                            "stove_dummy",
+                                            "microwave_dummy",
+                                            "sink_dummy",
+                                            "security_dummy",
+                                            "theatre_dummy",
+                                            "hotwater_dummy",
+                                            "solwater_dummy",
+                                            "solpower_dummy")], na.rm=TRUE)
+dattgt$environment <- rowSums(dattgt[c("waste_not_removed_dummy",
+                                       "litter_dummy",
+                                       "water_pollution_dummy",
+                                       "air_pollution_dummy",
+                                       "land_degrad_dummy",
+                                       "excess_noise_dummy",
+                                       "other_pollution_dummy",
+                                       "pesticides_dwelling_dummy",
+                                       "pesticides_garden_dummy",
+                                       "herbicides_garden_dummy")], na.rm=TRUE)
+dattgt$communication <- rowSums(dattgt[c("telephone_dummy",
+                                         "mobile_dummy",
+                                         "internet_dummy",
+                                         "mail_dummy",
+                                         "no_mail_dummy")], na.rm=TRUE)
+dattgt$waste <- dattgt$waste_removal_dummy
+dattgt$transport <- rowSums(dattgt[c("minibus_use_dummy",
+                                     "minibus_distance_rescaled",
+                                     "bus_use_dummy",
+                                     "bus_distance_rescaled",
+                                     "train_use_dummy",
+                                     "train_distance_rescaled")], na.rm=TRUE)
+dattgt$sanitation <- rowSums(dattgt[c("flush_toilet_dummy",
+                                      "shared_toilet_dummy",
+                                      "inside_toilet_dummy")], na.rm=TRUE)
+dattgt$water <- rowSums(dattgt[c("drinking_water_dummy",
+                                 "municipal_water_dummy")], na.rm=TRUE)
+dattgt$energy <- rowSums(dattgt[c("municipal_electricity_dummy",
+                                  "inhouse_electricity_dummy",
+                                  "blackouts_dummy",
+                                  "energy_cooking_dummy")], na.rm=TRUE)
+dattgt$agricultural_activities <- rowSums(dattgt[c("farming_main_income",
+                                                   "sell_agri_products_dummy",
+                                                   "agri_extension_dummy",
+                                                   "agri_grants_dummy",
+                                                   "agri_loans_dummy",
+                                                   "agri_loan_inputs_dummy",
+                                                   "agri_loan_free_dummy",
+                                                   "agri_dips_dummy",
+                                                   "govt_agri_assistance_dummy",
+                                                   "nongovt_agri_assistance_dummy")], na.rm=TRUE)
+dattgt$agricultural_assets <- rowSums(dattgt[c("cattle_dummy",
+                                               "sheep_dummy",
+                                               "goats_dummy",
+                                               "pigs_dummy",
+                                               "chickens_dummy",
+                                               "farmland_dummy",
+                                               "backyard_garden_dummy",
+                                               "school_garden_dummy",
+                                               "communal_garden_dummy",
+                                               "verge_garden_dummy",
+                                               "productive_land_size_dummy",
+                                               "productive_land_access_dummy")], na.rm=TRUE)
+dattgt$agricultural_production <- rowSums(dattgt[c("livestock_prod_dummy",
+                                          "poultry_prod_dummy",
+                                          "foodcrop_prod_dummy",
+                                          "industrial_crop_prod_dummy",
+                                          "fruit_veg_prod_dummy",
+                                          "fodder_prod_dummy",
+                                          "fish_prod_dummy",
+                                          "forestry_prod_dummy",
+                                          "game_prod_dummy",
+                                          "other_prod_dummy")], na.rm=TRUE)
+dattgt$household_characteristics <- rowSums(dattgt[c("demographics",
+                                                     "expenditure",
+                                                     "income",
+                                                     "wealth",
+                                                     "housing",
+                                                     "household_assets")], na.rm=TRUE)
+dattgt$infrastructure <- rowSums(dattgt[c("environment",
+                                          "communication",
+                                          "waste",
+                                          "transport",
+                                          "sanitation",
+                                          "water",
+                                          "energy")], na.rm=TRUE)
+dattgt$home_food_production <- rowSums(dattgt[c("agricultural_activities",
+                                                "agricultural_assets",
+                                                "agricultural_production")], na.rm=TRUE)
+
+dattgt$city <- as.numeric(dattgt$city)
+
+# create an empty graph based on datBN
+# create an empty graph based on datBN
+structure <- empty.graph(c("tgt",
+                           "household_characteristics",
+                           "infrastructure",
+                           "home_food_production",
+                           "demographics",
+                           "housing",
+                           "expenditure",
+                           "income",
+                           "wealth",
+                           "household_assets",
+                           "environment",
+                           "communication",
+                           "waste",
+                           "transport",
+                           "sanitation",
+                           "water",
+                           "energy",
+                           "agricultural_activities",
+                           "agricultural_assets",
+                           "agricultural_production",
+                           "gender_dummy",
+                           "ethnicity_dummy",
+                           "age_rescaled",
+                           "language_dummy",
+                           "city",
+                           "dwelling_dummy",
+                           "wall_dummy",
+                           "wall_condition_dummy",
+                           "roof_dummy",
+                           "roof_condition_dummy",
+                           "rooms_rescaled",
+                           "kitchen_dummy",
+                           "subsidy_dummy",
+                           "expenditure_dummy",
+                           "income_salary_dummy",
+                           "income_min_rescaled",
+                           "income_vs_min_dummy",
+                           "income_grants_dummy",
+                           "vehicle_dummy",
+                           "radio_dummy",
+                           "domestic_worker_dummy",
+                           "land_grant_residence_dummy",
+                           "land_grant_farm_dummy",
+                           "wealth_dummy",
+                           "happiness_dummy",
+                           "TV_dummy",
+                           "pool_dummy",
+                           "DVD_dummy",
+                           "payTV_dummy",
+                           "aircon_dummy",
+                           "computer_dummy",
+                           "vacuum_dummy",
+                           "dishwasher_dummy",
+                           "washer_dummy",
+                           "dryer_dummy",
+                           "freezer_dummy",
+                           "fridge_dummy",
+                           "stove_dummy",
+                           "microwave_dummy",
+                           "sink_dummy",
+                           "security_dummy",
+                           "theatre_dummy",
+                           "hotwater_dummy",
+                           "solwater_dummy",
+                           "solpower_dummy",
+                           "waste_not_removed_dummy",
+                           "litter_dummy",
+                           "water_pollution_dummy",
+                           "air_pollution_dummy",
+                           "land_degrad_dummy",
+                           "excess_noise_dummy",
+                           "other_pollution_dummy",
+                           "pesticides_dwelling_dummy",
+                           "pesticides_garden_dummy",
+                           "herbicides_garden_dummy",
+                           "telephone_dummy",
+                           "mobile_dummy",
+                           "internet_dummy",
+                           "mail_dummy",
+                           "no_mail_dummy",
+                           "waste_removal_dummy",
+                           "minibus_use_dummy",
+                           "minibus_distance_rescaled",
+                           "bus_use_dummy",
+                           "bus_distance_rescaled",
+                           "train_use_dummy",
+                           "train_distance_rescaled",
+                           "flush_toilet_dummy",
+                           "shared_toilet_dummy",
+                           "inside_toilet_dummy",
+                           "drinking_water_dummy",
+                           "municipal_water_dummy",
+                           "municipal_electricity_dummy",
+                           "inhouse_electricity_dummy",
+                           "blackouts_dummy",
+                           "energy_cooking_dummy",
+                           "farming_main_income",
+                           "sell_agri_products_dummy",
+                           "agri_training_dummy",
+                           "agri_extension_dummy",
+                           "agri_grants_dummy",
+                           "agri_loans_dummy",
+                           "agri_loan_inputs_dummy",
+                           "agri_loan_free_dummy",
+                           "agri_dips_dummy",
+                           "govt_agri_assistance_dummy",
+                           "nongovt_agri_assistance_dummy",
+                           "cattle_dummy",
+                           "sheep_dummy",
+                           "goats_dummy",
+                           "pigs_dummy",
+                           "chickens_dummy",
+                           "farmland_dummy",
+                           "backyard_garden_dummy",
+                           "school_garden_dummy",
+                           "communal_garden_dummy",
+                           "verge_garden_dummy",
+                           "productive_land_size_dummy",
+                           "productive_land_access_dummy",
+                           "livestock_prod_dummy",
+                           "poultry_prod_dummy",
+                           "foodcrop_prod_dummy",
+                           "industrial_crop_prod_dummy",
+                           "fruit_veg_prod_dummy",
+                           "fodder_prod_dummy",
+                           "fish_prod_dummy",
+                           "forestry_prod_dummy",
+                           "game_prod_dummy",
+                           "other_prod_dummy"))
+
+# set relationships manually based on HH survey structure (later: based on PCA)
+modelstring(structure) <- paste0("[tgt|household_characteristics:infrastructure:home_food_production]",
+                                 "[household_characteristics|demographics:expenditure:income:wealth:housing:household_assets]",
+                                 "[infrastructure|environment:communication:waste:transport:sanitation:water:energy]",
+                                 "[home_food_production|agricultural_activities:agricultural_assets:agricultural_production]",
+                                 "[demographics|gender_dummy:ethnicity_dummy:age_rescaled:language_dummy]",
+                                 "[housing|city:dwelling_dummy:wall_dummy:wall_condition_dummy:roof_dummy:roof_condition_dummy:rooms_rescaled:kitchen_dummy:subsidy_dummy]",
+                                 "[expenditure|expenditure_dummy]",
+                                 "[income|income_salary_dummy:income_min_rescaled:income_vs_min_dummy:income_grants_dummy]",
+                                 "[wealth|vehicle_dummy:radio_dummy:domestic_worker_dummy:land_grant_residence_dummy:land_grant_farm_dummy:wealth_dummy:happiness_dummy]",
+                                 "[household_assets|TV_dummy:pool_dummy:DVD_dummy:payTV_dummy:aircon_dummy:computer_dummy:vacuum_dummy:dishwasher_dummy:washer_dummy:dryer_dummy:freezer_dummy:fridge_dummy:stove_dummy:microwave_dummy:sink_dummy:security_dummy:theatre_dummy:hotwater_dummy:solwater_dummy:solpower_dummy]",
+                                 "[environment|waste_not_removed_dummy:litter_dummy:water_pollution_dummy:air_pollution_dummy:land_degrad_dummy:excess_noise_dummy:other_pollution_dummy:pesticides_dwelling_dummy:pesticides_garden_dummy:herbicides_garden_dummy]",
+                                 "[communication|telephone_dummy:mobile_dummy:internet_dummy:mail_dummy:no_mail_dummy]",
+                                 "[waste|waste_removal_dummy]",
+                                 "[transport|minibus_use_dummy:minibus_distance_rescaled:bus_use_dummy:bus_distance_rescaled:train_use_dummy:train_distance_rescaled]",
+                                 "[sanitation|flush_toilet_dummy:shared_toilet_dummy:inside_toilet_dummy]",
+                                 "[water|drinking_water_dummy:municipal_water_dummy]",
+                                 "[energy|municipal_electricity_dummy:inhouse_electricity_dummy:blackouts_dummy:energy_cooking_dummy]",
+                                 "[agricultural_activities|farming_main_income:sell_agri_products_dummy:agri_training_dummy:agri_extension_dummy:agri_grants_dummy:agri_loans_dummy:agri_loan_inputs_dummy:agri_loan_free_dummy:agri_dips_dummy:govt_agri_assistance_dummy:nongovt_agri_assistance_dummy]",
+                                 "[agricultural_assets|cattle_dummy:sheep_dummy:goats_dummy:pigs_dummy:chickens_dummy:farmland_dummy:backyard_garden_dummy:school_garden_dummy:communal_garden_dummy:verge_garden_dummy:productive_land_size_dummy:productive_land_access_dummy]",
+                                 "[agricultural_production|livestock_prod_dummy:poultry_prod_dummy:foodcrop_prod_dummy:industrial_crop_prod_dummy:fruit_veg_prod_dummy:fodder_prod_dummy:fish_prod_dummy:forestry_prod_dummy:game_prod_dummy:other_prod_dummy]",
+                                 "[gender_dummy]",
+                                 "[ethnicity_dummy]",
+                                 "[age_rescaled]",
+                                 "[language_dummy]",
+                                 "[city]",
+                                 "[dwelling_dummy]",
+                                 "[wall_dummy]",
+                                 "[wall_condition_dummy]",
+                                 "[roof_dummy]",
+                                 "[roof_condition_dummy]",
+                                 "[rooms_rescaled]",
+                                 "[kitchen_dummy]",
+                                 "[subsidy_dummy]",
+                                 "[expenditure_dummy]",
+                                 "[income_salary_dummy]",
+                                 "[income_min_rescaled]",
+                                 "[income_vs_min_dummy]",
+                                 "[income_grants_dummy]",
+                                 "[vehicle_dummy]",
+                                 "[radio_dummy]",
+                                 "[domestic_worker_dummy]",
+                                 "[land_grant_residence_dummy]",
+                                 "[land_grant_farm_dummy]",
+                                 "[wealth_dummy]",
+                                 "[happiness_dummy]",
+                                 "[TV_dummy]",
+                                 "[pool_dummy]",
+                                 "[DVD_dummy]",
+                                 "[payTV_dummy]",
+                                 "[aircon_dummy]",
+                                 "[computer_dummy]",
+                                 "[vacuum_dummy]",
+                                 "[dishwasher_dummy]",
+                                 "[washer_dummy]",
+                                 "[dryer_dummy]",
+                                 "[freezer_dummy]",
+                                 "[fridge_dummy]",
+                                 "[stove_dummy]",
+                                 "[microwave_dummy]",
+                                 "[sink_dummy]",
+                                 "[security_dummy]",
+                                 "[theatre_dummy]",
+                                 "[hotwater_dummy]",
+                                 "[solwater_dummy]",
+                                 "[solpower_dummy]",
+                                 "[waste_not_removed_dummy]",
+                                 "[litter_dummy]",
+                                 "[water_pollution_dummy]",
+                                 "[air_pollution_dummy]",
+                                 "[land_degrad_dummy]",
+                                 "[excess_noise_dummy]",
+                                 "[other_pollution_dummy]",
+                                 "[pesticides_dwelling_dummy]",
+                                 "[pesticides_garden_dummy]",
+                                 "[herbicides_garden_dummy]",
+                                 "[telephone_dummy]",
+                                 "[mobile_dummy]",
+                                 "[internet_dummy]",
+                                 "[mail_dummy]",
+                                 "[no_mail_dummy]",
+                                 "[waste_removal_dummy]",
+                                 "[minibus_use_dummy]",
+                                 "[minibus_distance_rescaled]",
+                                 "[bus_use_dummy]",
+                                 "[bus_distance_rescaled]",
+                                 "[train_use_dummy]",
+                                 "[train_distance_rescaled]",
+                                 "[flush_toilet_dummy]",
+                                 "[shared_toilet_dummy]",
+                                 "[inside_toilet_dummy]",
+                                 "[drinking_water_dummy]",
+                                 "[municipal_water_dummy]",
+                                 "[municipal_electricity_dummy]",
+                                 "[inhouse_electricity_dummy]",
+                                 "[blackouts_dummy]",
+                                 "[energy_cooking_dummy]",
+                                 "[farming_main_income]",
+                                 "[shared_toilet_dummy]",
+                                 "[sell_agri_products_dummy]",
+                                 "[agri_training_dummy]",
+                                 "[agri_extension_dummy]",
+                                 "[agri_grants_dummy]",
+                                 "[agri_loans_dummy]",
+                                 "[agri_loan_inputs_dummy]",
+                                 "[agri_loan_free_dummy]",
+                                 "[agri_dips_dummy]",
+                                 "[govt_agri_assistance_dummy]",
+                                 "[nongovt_agri_assistance_dummy]",
+                                 "[cattle_dummy]",
+                                 "[sheep_dummy]",
+                                 "[goats_dummy]",
+                                 "[pigs_dummy]",
+                                 "[chickens_dummy]",
+                                 "[farmland_dummy]",
+                                 "[backyard_garden_dummy]",
+                                 "[school_garden_dummy]",
+                                 "[communal_garden_dummy]",
+                                 "[verge_garden_dummy]",
+                                 "[productive_land_size_dummy]",
+                                 "[productive_land_access_dummy]",
+                                 "[livestock_prod_dummy]",
+                                 "[poultry_prod_dummy]",
+                                 "[foodcrop_prod_dummy]",
+                                 "[industrial_crop_prod_dummy]",
+                                 "[fruit_veg_prod_dummy]",
+                                 "[fodder_prod_dummy]",
+                                 "[fish_prod_dummy]",
+                                 "[forestry_prod_dummy]",
+                                 "[game_prod_dummy]",
+                                 "[other_prod_dummy]")
+
+
+# plot network 
+# using the visNetwork package to plot the network because it looks very nice.
+plot.network <- function(structure, ht = "400px"){
+  nodes.uniq <- unique(c(structure$arcs[,1], structure$arcs[,2]))
+  nodes <- data.frame(id = nodes.uniq,
+                      label = nodes.uniq,
+                      color = "darkturquoise",
+                      shadow = TRUE)
+  
+  edges <- data.frame(from = structure$arcs[,1],
+                      to = structure$arcs[,2],
+                      arrows = "to",
+                      smooth = TRUE,
+                      shadow = TRUE,
+                      color = "black")
+  
+  return(visNetwork(nodes, edges, height = ht, width = "100%") %>%
+           visGroups(groupname = "A", color = "darkblue") %>%    # darkblue for group "A"
+           visGroups(groupname = "B", color = "red"))             # red for group "B")
+}
+
+# observe structure
+plot.network(structure) %>% visHierarchicalLayout()
+
+# put data in correct format
+dattgt2 <- sapply(dattgt, as.numeric)
+dattgt2 <- as.data.frame(dattgt2)
+
+# deal with missing data
+nrow(dattgt2)*.05 # up to 625 observations can be missing on a variable and still be below 5%
+length(dattgt2)*.05 # rows can have up to 6.45 observations missing and still be below 5%
+names(which(colSums(is.na(dattgt2))>625)) # get variables with >5% missing data
+# for now, replace missing data with zeroes (need to deal with it properly later)
+dattgt2[is.na(dattgt2)] <- 0
+count(complete.cases(dattgt2))
+
+# fit model and output conditional probabilities
+bn.mod <- bn.fit(structure, data = dattgt2)
+
+sink(file="conditional probabilities from initial BN.txt")
+bn.mod # prints all CPTs - too many
+sink()
+
+# query specific nodes
+cat("P(low dietary diversity) =", cpquery(bn.mod, 
+                                      (tgt=="1"), TRUE), "\n")
+cat("P(low dietary diversity | 
+    city) =", cpquery(bn.mod, 
+                                            (tgt=="1"), 
+                                            (city == "1")), "\n")
+
+#### predict values for suburbs ####
+cat("P(low dietary diversity | 
+    city) =", cpquery(bn.mod, 
+                      (tgt=="1"), 
+                      (city == "1")), "\n")
+
+
+#### more deep dives for network ####
+
+cat("P(low food security | 
+    low property market value) =", cpquery(bn.mod, 
+                                           (FS_tgt=="1"), 
+                                           (property_market_value_f == "low")), "\n")
+
+
+cat("P(low food security | 
+    low property market value and 
+    piped water in house) =", cpquery(bn.mod, 
+                                      (FS_tgt=="1"), 
+                                      (property_market_value_f == "low" & 
+                                         drinking_water_source == "Piped in house")), "\n")
+
+
+cat("P(low food security | 
+    low property market value and 
+    producing grains or food crops) =", cpquery(bn.mod, 
+                                                (FS_tgt=="1"), 
+                                                (property_market_value_f == "low" & 
+                                                   grains_foodcrops_prod == "Yes")), "\n")
+
+
+cat("P(low food security | 
+    low property market value and 
+    male head of household) =", cpquery(bn.mod, 
+                                        (FS_tgt=="1"), 
+                                        (property_market_value_f == "low" & 
+                                           gender == "Male")), "\n")
+
+
+cat("P(low food security | 
+    low property market value and
+    producing grains or food crops and
+    male head of household) =", cpquery(bn.mod, 
+                                        (FS_tgt=="1"), 
+                                        (property_market_value_f == "low" & 
+                                           grains_foodcrops_prod == "Yes" &
+                                           gender == "Male")), "\n")
+
+
+
+
+
+# BN 
+
+
+
+
+##### descriptive analysis ####
+
+# describe DVs
+datplot <- as.data.frame(table(as.factor(datBN$HDDS)))
+datplot$highlight <- c(1,1,1,1,1,0,0,0,0,0,0)
+
+ggplot(datplot, 
+       aes(x=Var1, y=Freq, fill=highlight)) +
+  geom_col() +
+  ggtitle("Household Dietary Diversity Score",
+          subtitle = "Low Dietary Diversity in light blue") +
+  ILRItheme() +
+  labs(x = "Household Dietary Diversity Score") +
+  labs(y = "Count") +
+  labs(caption = "(based on data from Stats South Africa 2016 Household Survey)") +
+  theme(legend.position = "none")
+
+
+datplot <- as.data.frame(table(as.factor(datBN$sugar_fat)))
+datplot$highlight <- c("No","Yes")
+
+ggplot(datplot, 
+       aes(x=Var1, y=Freq, fill=highlight)) +
+  geom_col() +
+  ggtitle("Sugar or Fat") +
+  ILRItheme() +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.title.x = element_blank()) +
+  labs(y = "Count") +
+  labs(caption = "(based on data from Stats South Africa 2016 Household Survey)") 
+
+
+                                           
