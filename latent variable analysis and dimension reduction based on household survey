@@ -1,0 +1,572 @@
+# latent variable analysis and dimension reduction based on household survey
+# 28 May 2019
+# Jac Davis
+
+setwd("E:\\Food4Cities\\iterative model\\model v1")
+
+# general setup
+# libraries
+library(dismo)
+library(plyr)
+library(rgdal)
+library(data.table)
+library(MASS)
+library(gbm)
+library(rattle)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(lavaan)
+library(ggpubr)
+library(factoextra)
+
+# function for plot themes
+ILRItheme <- function(){
+  theme_light() +
+    theme(plot.title = element_text(size = 13, color = "gray30"),
+          plot.subtitle = element_text(size = 11, color = "black"),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          #          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text.x = element_text(size = 9, color = "gray10"),
+          axis.text.y = element_text(size = 9, color = "gray10"))
+}
+
+
+# load in data
+dat <- read.csv("household survey food utilisation data - cleaned with dummy vars.csv")
+
+# specify outcome variables
+# Household Dietary Diversity score: score 1/0 for each food group eaten at least once in past 24 hours and sum them  
+dat$cereals <- as.numeric(dat$diet_cereals>0)
+dat$potatoes <- as.numeric(dat$diet_potatoes>0)
+dat$beans <- as.numeric(dat$diet_beans>0)
+dat$greens <- as.numeric(dat$diet_greens>0)
+dat$vegetables <- as.numeric(dat$diet_vegetables>0)
+dat$fruit <- as.numeric(dat$diet_fruit>0)
+dat$meat <- as.numeric(dat$diet_meat>0)
+dat$dairy <- as.numeric(dat$diet_dairy>0)
+dat$sugar <- as.numeric(dat$diet_sugar>0)
+dat$fat <- as.numeric(dat$diet_fat>0)
+
+dat$HDDS <- rowSums(dat[c("cereals",
+                              "potatoes",
+                              "beans",
+                              "greens",
+                              "vegetables",
+                              "fruit",
+                              "meat",
+                              "dairy",
+                              "sugar",
+                              "fat")], na.rm=TRUE)
+
+# IFPRI recommends a score of < 4.5 as low dietary diversity: recode to P(low dietary diversity)
+dat$low_dietary_diversity <- as.numeric(dat$HDDS<4.5)
+
+# also, for completeness: fruit and/or vegetables at least once in past 24 hours, and animal-source food at least once in past 24 hours
+dat$ate_fruit_or_veg <- ifelse(dat$fruit>0, 1, ifelse(dat$vegetables>0, 1, ifelse(dat$greens>0, 1, 0)))
+dat$animal_source_foods <- ifelse(dat$meat>0, 1, ifelse(dat$dairy>0, 1, 0))
+dat$sugar_fat <- ifelse(dat$sugar>0, 1, ifelse(dat$fat>0, 1, 0))
+
+# Food Insecurity Experience Scale: 
+# raw score (integer 0-8)
+# P(moderate or severe food insecurity) = any of FS indicators in last 12 months
+# P(acute food insecurity) = any of FS indicators >5 times in last 30 days
+
+dat$FS_1 <- as.numeric(dat$food_security_adult_hungry!="Never")
+dat$FS_2 <- as.numeric(dat$food_security_child_hungry!="Never")
+dat$FS_3 <- as.numeric(dat$food_security_out_of_money_in12mths=="Yes")
+dat$FS_4 <- as.numeric(dat$food_security_out_of_money_5in30days=="Yes")
+dat$FS_5 <- as.numeric(dat$food_security_cut_meals_in12mths=="Yes")
+dat$FS_6 <- as.numeric(dat$food_security_cut_meals_5in30days=="Yes")
+dat$FS_7 <- as.numeric(dat$food_security_skip_meals_in12mths=="Yes")
+dat$FS_8 <- as.numeric(dat$food_security_skip_meals_5in30days=="Yes")
+dat$FS_9 <- as.numeric(dat$food_security_smaller_variety_in12mths=="Yes")
+dat$FS_10 <- as.numeric(dat$food_security_smaller_variety_5in30days=="Yes")
+
+dat$FS_rawscore <- rowSums(dat[c("FS_1",
+                                     "FS_2",
+                                     "FS_3",
+                                     "FS_4",
+                                     "FS_5",
+                                     "FS_6",
+                                     "FS_7",
+                                     "FS_8",
+                                     "FS_9",
+                                     "FS_10")], na.rm=TRUE)
+
+
+dat$FS_12_months <- ifelse(dat$FS_3==1,1,
+                             ifelse(dat$FS_5==1,1,
+                                    ifelse(dat$FS_7==1,1,
+                                           ifelse(dat$FS_9==1,1,0))))
+
+dat$FS_30_days <- ifelse(dat$FS_4==1,1,
+                           ifelse(dat$FS_6==1,1,
+                                  ifelse(dat$FS_8==1,1,
+                                         ifelse(dat$FS_10==1,1,0))))
+
+
+# choose 2-dimensional dietary diversity/food security outcome - for transition modelling
+dat$highFS_highDD <- ifelse(dat$FS_12_months==1,0,
+                            ifelse(dat$low_dietary_diversity==1,0,1))
+dat$highFS_lowDD <- ifelse(dat$FS_12_months==1,0,
+                            ifelse(dat$low_dietary_diversity==0,0,1))
+dat$lowFS_highDD <- ifelse(dat$FS_12_months==0,0,
+                            ifelse(dat$low_dietary_diversity==1,0,1))
+dat$lowFS_lowDD <- ifelse(dat$FS_12_months==0,0,
+                            ifelse(dat$low_dietary_diversity==0,0,1))
+# run the cfa for each outcome variable
+# choose top 5 variables for each outcome variable
+
+# latent variable analysis: confirmatory factor analysis using dummy variables
+# this works, but doesn't help to distinguish between observed variables at different factors - table for now and move to pca (below)
+
+# some corrections to dummy coding: check data preparation script
+dat$municipal_water_dummy <- as.numeric(dat$municipal_water=="Yes")
+
+head(dat)
+
+food_model <- 'demographics =~ gender_dummy + ethnicity_dummy + language_dummy + age_rescaled
+               housing =~ dwelling_dummy + wall_dummy + wall_condition_dummy + roof_dummy + roof_condition_dummy + rooms_rescaled + kitchen_dummy + tenure_dummy
+               water =~ drinking_water_dummy + municipal_water_dummy
+               sanitation =~ flush_toilet_dummy + inside_toilet_dummy + shared_toilet_dummy'
+
+fit <- cfa(food_model, data=dat)
+summary(fit, fit.measures=TRUE)
+
+# select outcome
+dat$tgt <- dat$highFS_highDD
+
+# select data
+dattgt <- dat[,c("city",
+                   "gender_dummy",                           
+                   "ethnicity_dummy",
+                   "language_dummy",                         
+                   "age_rescaled",
+                   "dwelling_dummy",                         
+                   "wall_dummy",
+                   "wall_condition_dummy",                   
+                   "roof_dummy",
+                   "roof_condition_dummy",                   
+                   "rooms_rescaled",
+                   "kitchen_dummy",  
+                   "subsidy_dummy",                          
+                   "income_salary_dummy",                    
+                   "income_grants_dummy",
+                   "income_min_rescaled",                    
+                   "income_vs_min_dummy",
+                   "waste_removal_dummy",
+                   "expenditure_dummy",                      
+                   "vehicle_dummy",
+                   "radio_dummy",                            
+                   "domestic_worker_dummy",
+                   "land_grant_residence_dummy",             
+                   "land_grant_farm_dummy",
+                   "wealth_dummy",                           
+                   "happiness_dummy",
+                   "TV_dummy",                               
+                   "pool_dummy",
+                   "DVD_dummy",                              
+                   "payTV_dummy",
+                   "aircon_dummy",                           
+                   "computer_dummy",
+                   "vacuum_dummy",                           
+                   "dishwasher_dummy",
+                   "washer_dummy",                           
+                   "dryer_dummy",
+                   "freezer_dummy",                          
+                   "fridge_dummy",
+                   "stove_dummy",                            
+                   "microwave_dummy",
+                   "sink_dummy",                             
+                   "security_dummy",
+                   "theatre_dummy",                          
+                   "hotwater_dummy",
+                   "solwater_dummy",                         
+                   "solpower_dummy",
+                   "drinking_water_dummy",                   
+                   "municipal_water_dummy",
+                   "flush_toilet_dummy",                     
+                   "shared_toilet_dummy",
+                   "inside_toilet_dummy",                    
+                   "municipal_electricity_dummy",
+                   "inhouse_electricity_dummy",              
+                   "blackouts_dummy",
+                   "energy_cooking_dummy",                   
+                   "waste_not_removed_dummy",
+                   "litter_dummy",                           
+                   "water_pollution_dummy",
+                   "air_pollution_dummy",                    
+                   "land_degrad_dummy",
+                   "excess_noise_dummy",                     
+                   "other_pollution_dummy",
+                   "pesticides_dwelling_dummy",              
+                   "pesticides_garden_dummy",
+                   "herbicides_garden_dummy",                
+                   "telephone_dummy",
+                   "mobile_dummy",                           
+                   "internet_dummy",
+                   "mail_dummy",                             
+                   "no_mail_dummy",
+                   "minibus_use_dummy",                      
+                   "minibus_distance_rescaled",
+                   "bus_use_dummy",                          
+                   "bus_distance_rescaled",
+                   "train_use_dummy",                        
+                   "train_distance_rescaled",
+                   "livestock_prod_dummy",                   
+                   "poultry_prod_dummy",
+                   "foodcrop_prod_dummy",                    
+                   "industrial_crop_prod_dummy",
+                   "fruit_veg_prod_dummy",                   
+                   "fodder_prod_dummy",
+                   "fish_prod_dummy",                        
+                   "forestry_prod_dummy",
+                   "game_prod_dummy",                        
+                   "other_prod_dummy",
+                   "farming_main_income",                    
+                   "sell_agri_products_dummy",
+                   "agri_training_dummy",                    
+                   "agri_extension_dummy",
+                   "agri_grants_dummy",                      
+                   "agri_loans_dummy",
+                   "agri_loan_inputs_dummy",                 
+                   "agri_loan_free_dummy",
+                   "agri_dips_dummy",                        
+                   "govt_agri_assistance_dummy",
+                   "nongovt_agri_assistance_dummy",          
+                   "cattle_dummy",
+                   "goats_dummy",                            
+                   "sheep_dummy",
+                   "pigs_dummy",                             
+                   "chickens_dummy",
+                   "farmland_dummy",                         
+                   "backyard_garden_dummy",
+                   "school_garden_dummy",                    
+                   "communal_garden_dummy",
+                   "verge_garden_dummy",                     
+                   "productive_land_size_dummy",
+                   "productive_land_access_dummy")]
+
+
+# put data in correct format
+dattgt2 <- sapply(dattgt, as.numeric)
+dattgt2 <- as.data.frame(dattgt2)
+
+# deal with missing data
+# for now, replace missing data with zeroes (need to deal with it properly later)
+dattgt2[is.na(dattgt2)] <- 0
+count(complete.cases(dattgt2))
+
+# principle component analysis
+# aim is to reduce the number of dimensions that we need to measure
+features <- c("gender_dummy",
+              "age_rescaled",
+              "ethnicity_dummy",
+              "language_dummy",
+              "dwelling_dummy",
+              "wall_dummy",
+              "wall_condition_dummy",                   
+              "roof_dummy","roof_condition_dummy","rooms_rescaled",                         
+              "kitchen_dummy","subsidy_dummy","income_salary_dummy",                    
+              "income_grants_dummy","income_min_rescaled","income_vs_min_dummy","expenditure_dummy",                      
+              "vehicle_dummy","radio_dummy","domestic_worker_dummy","land_grant_residence_dummy",             
+              "land_grant_farm_dummy","wealth_dummy",                           
+              "happiness_dummy","TV_dummy","pool_dummy","DVD_dummy",                              
+              "payTV_dummy","aircon_dummy","computer_dummy","vacuum_dummy",                           
+              "dishwasher_dummy","washer_dummy",                           
+              "dryer_dummy","freezer_dummy","fridge_dummy","stove_dummy",                            
+              "microwave_dummy","sink_dummy","security_dummy","theatre_dummy",                          
+              "hotwater_dummy","solwater_dummy","solpower_dummy","drinking_water_dummy",                   
+              "municipal_water_dummy","flush_toilet_dummy",                     
+              "shared_toilet_dummy","inside_toilet_dummy","municipal_electricity_dummy","inhouse_electricity_dummy",              
+              "blackouts_dummy","energy_cooking_dummy","waste_removal_dummy","waste_not_removed_dummy",                
+              "litter_dummy","water_pollution_dummy","air_pollution_dummy","land_degrad_dummy",                      
+              "excess_noise_dummy","other_pollution_dummy","pesticides_dwelling_dummy","pesticides_garden_dummy",                
+              "herbicides_garden_dummy","telephone_dummy","mobile_dummy","internet_dummy",                         
+              "mail_dummy","no_mail_dummy","minibus_use_dummy","minibus_distance_rescaled",              
+              "bus_distance_rescaled","train_distance_rescaled",                
+              "livestock_prod_dummy","poultry_prod_dummy","foodcrop_prod_dummy","industrial_crop_prod_dummy",             
+              "fruit_veg_prod_dummy","fodder_prod_dummy","fish_prod_dummy","forestry_prod_dummy",                    
+              "game_prod_dummy","other_prod_dummy","farming_main_income","sell_agri_products_dummy",
+              "agri_training_dummy","agri_extension_dummy","agri_grants_dummy","agri_loans_dummy",
+              "agri_loan_inputs_dummy","agri_loan_free_dummy",                   
+              "agri_dips_dummy","govt_agri_assistance_dummy",             
+              "nongovt_agri_assistance_dummy",
+              "cattle_dummy",                           
+              "goats_dummy","sheep_dummy",                            
+              "pigs_dummy","chickens_dummy",                         
+              "farmland_dummy","backyard_garden_dummy",                  
+              "school_garden_dummy","communal_garden_dummy",                  
+              "verge_garden_dummy","productive_land_size_dummy",             
+              "productive_land_access_dummy")                      
+
+food.pr <- prcomp(dattgt2[,features],
+                  center=TRUE, scale=TRUE)
+summary(food.pr)
+
+# discard components with eigenvalues <1 - 28 components out of 106 features
+screeplot(food.pr,
+          type="lines",
+          npcs = 30,
+          main = "Screeplot of the first 30 PCs")
+          abline(h=1, col="red", lty=5)
+          legend("topright",
+                 legend=c("Eigenvalue = 1"),
+                 col=c("red"), lty=5,
+                 cex=0.6)
+
+cumpro <- cumsum(food.pr$sdev^2/sum(food.pr$sdev^2))
+plot(cumpro[0:30],
+     xlab = "PC#",
+     ylab = "Amount of explained variance",
+     main = "Cumulative variance plot")
+abline(v = 29, col = "blue", lty = 5)
+abline(h = 0.59622, col="blue", lty=5)
+legend("topleft",
+       legend=c("Cut-off at PC#28"),
+       col=c("blue"), lty=5, cex=0.6)
+
+# plot first two components with target variable
+fviz_pca_ind(food.pr,
+             geom.ind = "point",
+             pointshape = 21,
+             pointsize = 2,
+             fill.id = dattgt2$tgt,
+             addEllipses = TRUE,
+             label = "var",
+             col.var = "black",
+             repel = TRUE,
+             legend.title = "High food security, high dietary diversity") +
+  ggtitle("2D PCA-plot from household data") +
+  ILRItheme()
+
+
+# run the BRT and CART for each outcome variable - direct dimension reduction
+
+# BRT
+## fast trees for evaluation, for final analysis change to n.folds=10, n.trees=50
+# select vars
+tgt <- c("highFS_highDD",
+         "highFS_lowDD",
+         "lowFS_highDD",
+         "lowFS_lowDD")
+
+datmod <- dattgt2[,features] # choose predictors
+FS_tgt <- dat[,tgt[4]] # choose target variable
+datmod <- cbind(FS_tgt,datmod)
+
+# subset to non-NA
+datmod <- datmod[!is.na(datmod$FS_tgt),]
+
+nvar <- length(datmod[1,])
+par(mfrow=c(1,1))
+
+egbm2 <- gbm.step(datmod,
+                  gbm.y=1,
+                  gbm.x=2:nvar,
+                  tree.complexity=5,
+                  family="bernoulli",
+                  n.folds=5, 
+                  n.trees=10,
+                  step.size = 1, 
+                  verbose=FALSE)
+
+tiff(filename="RplotBRT3.1-4.tiff",
+     height=4000,width=6000,
+     bg="white")
+summary(egbm2, family = "serif",las=1)
+dev.off()
+#summary(egbm2, family = "serif",las=1)
+
+# nicer plot of top 10 variables
+plotdat <- read.table(text = "Variable  Relative_Inf
+                              wealth_dummy  25.04243301
+                              income_min_rescaled 9.91679816
+                              income_vs_min_dummy  8.77088035
+                              expenditure_dummy  6.82440596
+                              blackouts_dummy  5.85075008
+                              fridge_dummy  5.43775088
+                              microwave_dummy  3.34663448
+                              pesticides_dwelling_dummy 2.91571130
+                              radio_dummy 2.75557295
+                              wall_condition_dummy  2.28321215", header=TRUE)
+
+ggplot(plotdat, aes(Variable, Relative_Inf)) +
+  geom_col() +
+  ILRItheme() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# plot the brt results
+op <- par(family = "serif")
+gbm.plot(egbm2, 
+         variable.no=0, 
+         smooth=FALSE, 
+         rug=TRUE, 
+         n.plots=6, 
+         common.scale=TRUE,
+         write.title=FALSE, 
+         y.label="Fitted function", 
+         x.label=NULL, 
+         show.contrib=TRUE,
+         plot.layout=c(2,3),
+         cex.axis = 2,
+         cex.lab = 1.5,
+         lwd = 2)
+
+# check the brt
+best.iter <- 5000
+egbm2.pred <- predict.gbm(egbm2,datmod,best.iter)
+summary(egbm2.pred)
+plot(as.factor(datmod$FS_tgt),egbm2.pred, xlab="observed", ylab="predicted")
+table(as.factor(datmod$FS_tgt),cut(egbm2.pred,c(-10,0,10)))
+
+
+# for CART use any var with rel.inf at least 1
+
+datCART <- sapply(datmod, as.factor)
+datCART <- as.data.frame(datCART)
+rm(datCART) # remove FS_tgt from global environment
+attach(datCART) # CART works best with attached data so far
+
+cart_bin <- rpart(as.factor(FS_tgt) ~
+                    hotwater_dummy + 
+                    microwave_dummy +
+                    income_vs_min_dummy +
+                    vehicle_dummy +
+                    income_min_rescaled +
+                    wealth_dummy +
+                    happiness_dummy +
+                    payTV_dummy +
+                    income_grants_dummy +
+                    income,
+                  control = rpart.control(minsplit = 1, 
+                                          minbucket = 2, 
+                                          cp = 2e-03),
+                  maxdepth=5)
+
+# view results
+printcp(cart_bin)
+
+# draw the plot for relative importance of each variable
+cart_bin$variable.importance # gives the relative importance of each variable
+imp <- as.matrix(cart_bin$variable.importance)
+names <- rownames(imp)
+plot(imp, type="h", xaxt="n", xlab="", ylab="relative importance", lwd=4)
+axis(1, labels = names, at=1:23, las=2)
+title(main="Relative Importance of Predictors")
+
+# draw the prettier tree plot
+fancyRpartPlot(cart_bin, sub="")				# A fancy plot
+
+detach(datmod) # detach data
+#
+
+tiff(filename="CART1.tiff",height=4000,width=6000, res = 300,
+     bg="white")
+fancyRpartPlot(cart_bin, sub="")				# A fancy plot
+dev.off()
+#
+
+# make BNs for each transition
+
+BNvars <- c("expenses" , 
+            "city" ,
+            "language" ,
+            "roof_condition" ,
+            "vehicle" ,
+            "hh_size" ,
+            "child_17under" ,
+            "energy_cooking" ,
+            "income" ,
+            "fridge" ,
+            "rubbish_removal" ,
+            "property_market_value" ,
+            "water_pollution" ,
+            "dwelling" ,
+            "drinking_water_source" ,
+            "grains_foodcrops_prod" ,
+            "livestock_prod",
+            "age" ,
+            "electricity_quality" ,
+            "toilet_type" ,
+            "gender",
+            "FS_tgt")
+
+datBN <- datmod[,BNvars]
+datBN$FS_tgt <- as.factor(datBN$FS_tgt)
+
+# recode numeric vars to factors
+
+datBN <- datBN[,c("expenses_f", 
+                  "city", 
+                  "language" ,
+                  "roof_condition" ,
+                  "vehicle" ,
+                  "hh_size_f" ,
+                  "child_17under_f" ,
+                  "energy_cooking" ,
+                  "income_f" ,
+                  "fridge" ,
+                  "rubbish_removal" ,
+                  "property_market_value_f" ,
+                  "water_pollution" ,
+                  "dwelling" ,
+                  "drinking_water_source" ,
+                  "grains_foodcrops_prod" ,
+                  "livestock_prod",
+                  "age_f" ,
+                  "electricity_quality" ,
+                  "toilet_type" ,
+                  "gender",
+                  "FS_tgt")]
+
+
+# create an empty graph
+structure <- empty.graph(c("expenses_f","city","language","roof_condition","vehicle","hh_size_f","child_17under_f","energy_cooking","income_f","fridge","rubbish_removal","property_market_value_f","water_pollution","dwelling","drinking_water_source","grains_foodcrops_prod","livestock_prod","age_f","electricity_quality","toilet_type","gender","FS_tgt"))
+
+# set relationships manually
+modelstring(structure) <- "[expenses_f][language][roof_condition][vehicle][hh_size_f][child_17under_f][energy_cooking|electricity_quality][income_f][fridge|electricity_quality][rubbish_removal][property_market_value_f|expenses_f:income_f:dwelling][city][water_pollution][dwelling][drinking_water_source][grains_foodcrops_prod][livestock_prod][age_f][electricity_quality][toilet_type][gender][FS_tgt|grains_foodcrops_prod:livestock_prod:drinking_water_source:fridge:energy_cooking:property_market_value_f:vehicle]"
+
+# plot network 
+# using the visNetwork package to plot the network because it looks very nice.
+plot.network <- function(structure, ht = "400px"){
+  nodes.uniq <- unique(c(structure$arcs[,1], structure$arcs[,2]))
+  nodes <- data.frame(id = nodes.uniq,
+                      label = nodes.uniq,
+                      color = "darkturquoise",
+                      shadow = TRUE)
+  
+  edges <- data.frame(from = structure$arcs[,1],
+                      to = structure$arcs[,2],
+                      arrows = "to",
+                      smooth = TRUE,
+                      shadow = TRUE,
+                      color = "black")
+  
+  return(visNetwork(nodes, edges, height = ht, width = "100%"))
+}
+
+
+# observe structure
+plot.network(structure)
+
+# fit model and output conditional probabilities
+bn.mod <- bn.fit(structure, data = datBN)
+bn.mod # prints all CPTs - too many
+
+# query specific nodes
+cat("P(low food security) =", cpquery(bn.mod, 
+                                      (FS_tgt=="1"), TRUE), "\n")
+cat("P(low food security | 
+    high property market value) =", cpquery(bn.mod, 
+                                            (FS_tgt=="1"), 
+                                            (property_market_value_f == "high")), "\n")
+
+
+cat("P(low food security | 
+    low property market value) =", cpquery(bn.mod, 
+                                           (FS_tgt=="1"), 
+                                           (property_market_value_f == "low")), "\n")
