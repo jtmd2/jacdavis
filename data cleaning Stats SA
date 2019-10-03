@@ -1,0 +1,863 @@
+# identify variables and revalue factor levels
+# flap section (demographics)
+datfin$demo_gender <- revalue(as.factor(datfin$head_sex), c("1"="Male", 
+                                                            "2"="Female"))
+datfin$demo_age <- datfin$head_age
+datfin$demo_group <- revalue(as.factor(datfin$head_popgrp), c("1"="Black African", 
+                                                              "2"="Coloured",
+                                                              "3"="Indian/Asian",
+                                                              "4" = "White",
+                                                              "5" = "Other"))
+datfin$language <- revalue(as.factor(datfin$Q101Lan), c("1"="Afrikaans", 
+                                                        "2"="English",
+                                                        "3"="Isindebele",
+                                                        "4"="Isixhosa",
+                                                        "5"="Isizulu",
+                                                        "6"="Khoi, Nama, and San",
+                                                        "7"="Sepedi",
+                                                        "8"="Sesotho",
+                                                        "9"="Setswana",
+                                                        "10"="Sign Language",
+                                                        "11"="SiSwati",
+                                                        "12"="Tshivenda",
+                                                        "13"="Xitsonga",
+                                                        "14"="Other"))
+
+# section 5 (household information)
+# housing
+datfin$dwelling <- revalue(as.factor(datfin$Q51MainD), c("1"="Separate house", 
+                                                         "2"="Traditional structure",
+                                                         "3"="Flat or apartment",
+                                                         "4"="Cluster house",
+                                                         "5"="Town house",
+                                                         "6"="Semi-detached house",
+                                                         "7"="Dwelling in backyard",
+                                                         "8"="Informal dwelling in backyard",
+                                                         "9"="Informal settlement",
+                                                         "10"="Room on larger property",
+                                                         "11"="Caravan or tent",
+                                                         "12"="Other",
+                                                         "99" = NA))
+datfin$wall_material <- revalue(as.factor(datfin$Q52Walls), c("1"="Bricks", 
+                                                              "2"="Cement or concrete",
+                                                              "3"="Corrugated iron",
+                                                              "4"="Wood",
+                                                              "5"="Plastic",
+                                                              "6"="Cardboard",
+                                                              "7"="Mud and cement mix",
+                                                              "8"="Wattle and daub",
+                                                              "9"="Tile",
+                                                              "10"="Mud",
+                                                              "11"="Thatching or grass",
+                                                              "12"="Asbestos",
+                                                              "13"="Other",
+                                                              "99" = NA))
+datfin$wall_condition <- revalue(as.factor(datfin$Q54WallC), c("1"="Very weak", 
+                                                               "2"="Weak",
+                                                               "3"="Need minor repairs",
+                                                               "4"="Good",
+                                                               "5"="Very good",
+                                                               "9" = NA))
+datfin$roof_material <- revalue(as.factor(datfin$Q52Roof), c("1"="Bricks", 
+                                                             "2"="Cement or concrete",
+                                                             "3"="Corrugated iron",
+                                                             "4"="Wood",
+                                                             "5"="Plastic",
+                                                             "6"="Cardboard",
+                                                             "7"="Mud and cement mix",
+                                                             "8"="Wattle and daub",
+                                                             "9"="Tile",
+                                                             "10"="Mud",
+                                                             "11"="Thatching or grass",
+                                                             "12"="Asbestos",
+                                                             "13"="Other",
+                                                             "99" = NA))
+datfin$roof_condition <- revalue(as.factor(datfin$Q54RoofC), c("1"="Very weak", 
+                                                               "2"="Weak",
+                                                               "3"="Need minor repairs",
+                                                               "4"="Good",
+                                                               "5"="Very good",
+                                                               "9" = NA))
+datfin$floor <- revalue(as.factor(datfin$Q53Floor), c("1" = "Earth/Sand",
+                                                      "2" = "Dung",
+                                                      "3" = "Wood/Planks",
+                                                      "4" = "Parquet/polished wood",
+                                                      "5" = "Vinyl or asphalt",
+                                                      "6" = "Ceramic tiles",
+                                                      "7" = "Cement",
+                                                      "8" = "Carpet",
+                                                      "9" = "Other",
+                                                      "99" = NA))
+datfin$house_rooms_dining <- datfin$Q55Open
+datfin$house_rooms_dining[datfin$Q55Open==99] <- NA
+datfin$house_rooms_lounge <- datfin$Q55Close
+datfin$house_rooms_lounge[datfin$Q55Close==99] <- NA
+datfin$house_rooms_bedrooms <- datfin$Q55Bedr
+datfin$house_rooms_bedrooms[datfin$Q55Bedr==99] <- NA
+datfin$house_rooms_multiple_use <- datfin$Q55Multiroom
+datfin$house_rooms_multiple_use[datfin$Q55Multiroom==99] <- NA
+datfin$house_rooms_kitchen <- datfin$Q55Kit
+datfin$house_rooms_kitchen[datfin$Q55Kit==99] <- NA
+datfin$house_rooms_bathroom <- datfin$Q55Bath
+datfin$house_rooms_bathroom[datfin$Q55Bath==99] <- NA
+datfin$house_rooms_toilet <- datfin$Q55Toil
+datfin$house_rooms_toilet[datfin$Q55Toil==99] <- NA
+datfin$house_rooms_other <- datfin$Q55Othr
+datfin$house_rooms_other[datfin$Q55Othr==99] <- NA
+datfin$house_rooms_all <- datfin$Q55TotRm
+datfin$house_rooms_all[datfin$Q55TotRm==99] <- NA
+datfin$tenure_status <- revalue(as.factor(datfin$Q56Owner), c("1" = "Rented from private individual",
+                                                              "2" = "Rented from other",
+                                                              "3" = "Owned but not yet paid off to bank",
+                                                              "4" = "Owned but not yet paid off to private lender",
+                                                              "5" = "Owned and fully paid off",
+                                                              "6" = "Occupied rent-free",
+                                                              "7" = "Other",
+                                                              "8" = "Do not know",
+                                                              "99" = NA))
+datfin$rent <- revalue(as.factor(datfin$Q57Rent), c("1" = "Less than R500",
+                                                    "2" = "R501 - R1000",
+                                                    "3" = "R1001 - R3000",
+                                                    "4" = "R3001 - R5000",
+                                                    "5" = "R5001 - R7000",
+                                                    "6" = "More than R7000",
+                                                    "7" = "Do not know",
+                                                    "8" = "Other",
+                                                    "9" = NA))
+datfin$property_market_value <- revalue(as.factor(datfin$Q58Val), 
+                                        c("1"="Less than R50 000", 
+                                          "2"="R50001 - R250000",
+                                          "3"="R250001 - R500000",
+                                          "4"="R500001 - R1000000",
+                                          "5"="R1000001 - R1500000",
+                                          "6"="R1500001 - R2000000",
+                                          "7"="R2000001 - R300000",
+                                          "8"="More than R3000000",
+                                          "9"="Do not know",
+                                          "99"=NA))
+datfin$property_age <- revalue(as.factor(datfin$Q59Built),
+                               c("1" = "0-5 years",
+                                 "2" = "6-10 years",
+                                 "3" = "11-20 years",
+                                 "4" = "21-30 years",
+                                 "5" = "31-40 years",
+                                 "6" = "41-50 years",
+                                 "7" = "51-70 years",
+                                 "8" = "Older than 70 years",
+                                 "9" = "Do not know",
+                                 "99" = NA))
+datfin$property_subsidised <- revalue(as.factor(datfin$Q510aRDP),
+                                      c("1" = "Yes",
+                                        "2" = "No",
+                                        "3" = "Do not know",
+                                        "9" = NA))
+# water
+# did not include water questions evaluating quality of municipal water service
+datfin$drinking_water_source <- revalue(as.factor(datfin$Q512Drin), c("1"="Piped in house", 
+                                                           "2"="Piped in yard",
+                                                           "3"="Borehole in yard",
+                                                           "4"="Rain-water tank",
+                                                           "5"="Neighbour's tap",
+                                                           "6"="Public/communal tap",
+                                                           "7"="Water-carrier/tanker",
+                                                           "8"="Water vendor",
+                                                           "9"="Borehole outside yard",
+                                                           "10"="Stream or river",
+                                                           "11"="Dam or pool",
+                                                           "12"="Well",
+                                                           "13"="Spring",
+                                                           "14"="Other"))
+datfin$distance_to_water <- revalue(as.factor(datfin$Q513aDist), 
+                                    c("1" = "Less than 200m",
+                                      "2" = "201m-500m",
+                                      "3" = "501m - 1 km",
+                                      "4" = "More than 1km",
+                                      "5" = "Do not know",
+                                      "9" = NA))
+datfin$municipal_water <- revalue(as.factor(datfin$Q516Muni), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "3"="Do not know"))                
+# sanitation
+datfin$toilet_type <- revalue(as.factor(datfin$Q522Toil), 
+                              c("1"="Flush toilet to public sewerage", 
+                                "2"="Flush toilet to septic tank",
+                                "3"="Pour flush toilet to septic tank",
+                                "4"="Chemical toilet",
+                                "5"="Pit toilet with ventilation",
+                                "6"="Pit toilet without ventilation",
+                                "7"="Bucket toilet collected by municipality",
+                                "8"="Bucket toilet emptied by household",
+                                "9"="Ecological sanitation system",
+                                "10"="Open defecation",
+                                "11"="Other",
+                                "99" = NA))
+datfin$toilet_shared <- revalue(as.factor(datfin$Q524Sha),
+                                c("1"="Yes", 
+                                  "2"="No",
+                                  "8"="Don't know",
+                                  "9" = NA))
+datfin$toilet_inside <- revalue(as.factor(datfin$Q525aOY),
+                                c("1" = "In dwelling",
+                                  "2" = "In yard",
+                                  "3" = "Outside yard",
+                                  "8" = "Don't know",
+                                  "9" = NA))
+# energy
+# excluded questions evaluating quality of municipal electricity service
+datfin$access_electricity <- revalue(as.factor(datfin$Q527Access), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "3"="Don't know",
+                                                                     "9"=NA))
+datfin$electricity_source <- revalue(as.factor(datfin$Q527BMainelect), 
+                                     c("1" = "In-house conventional meter",
+                                       "2" = "In-house pre-paid meter",
+                                       "3" = "Connected to other paid source",
+                                       "4" = "Connected to other unpaid source",
+                                       "5" = "Generator",
+                                       "6" = "Home solar panels",
+                                       "7" = "Other",
+                                       "8" = "Do not know",
+                                       "9" = NA))
+datfin$mains_electricity <- revalue(as.factor(datfin$Q528aMains), c("1"="Yes", 
+                                                                    "2"="No",
+                                                                    "3"="Don't know",
+                                                                    "9"=NA))              
+datfin$electricity_quality <- revalue(as.factor(datfin$Q529aRate), c("1"="Good", 
+                                                                     "2"="Average",
+                                                                     "3"="Poor",
+                                                                     "8" = "Do not know",
+                                                                     "9" = NA))
+datfin$electricity_cutoff <- datfin$Q529dCUT6M
+datfin$electricity_cutoff[datfin$Q529dCUT6M==88] <- NA
+datfin$electricity_cutoff[datfin$Q529dCUT6M==99] <- NA
+datfin$energy_cooking <- revalue(as.factor(datfin$Q531Cook), 
+                                 c("1"="Mains electricity",
+                                   "2"="Other electricity",
+                                   "3"="Gas",
+                                   "4"="Paraffin",
+                                   "5"="Wood",
+                                   "6"="Coal",
+                                   "7"="Candles",
+                                   "8"="Animal dung",
+                                   "9"="Solar",
+                                   "10"="Other",
+                                   "11"="None"))               
+# did not include energy sources for lighting, water heating, space heating
+
+# waste
+# did not include questions evaluating municipal waste services or recycling
+datfin$rubbish_removal <- revalue(as.factor(datfin$Q532Rub), c("1"="Removed by local authority at least once per week", 
+                                                               "2"="Removed by local authority less often",
+                                                               "3"="Removed by contractors at least once per week",
+                                                               "4"="Removed by contractors less often",
+                                                               "5"="Removed by community at least once per week",
+                                                               "6"="Removed by community members less often",                                                            "3"="",
+                                                               "7"="Communal refuse dump",
+                                                               "8"="Central collection point",
+                                                               "9"="Own refuse dump",
+                                                               "10"="Dump or leave rubbish anywhere",
+                                                               "11"="Other",
+                                                               "99"=NA))
+# environment
+datfin$irregular_waste_removal <- revalue(as.factor(datfin$Q536Rub), c("1"="Yes", 
+                                                                       "2"="No",
+                                                                       "9"=NA))
+datfin$littering <- revalue(as.factor(datfin$Q536lit), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))
+datfin$water_pollution <- revalue(as.factor(datfin$Q536Wat), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))
+datfin$air_pollution <- revalue(as.factor(datfin$Q536Air), c("1"="Yes", 
+                                                             "2"="No",
+                                                             "9"=NA))
+datfin$land_degradation <- revalue(as.factor(datfin$Q536Lan), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA))
+datfin$excessive_noise <- revalue(as.factor(datfin$Q536Noi), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))
+datfin$other_pollution <- revalue(as.factor(datfin$Q536Oth), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))
+datfin$pesticides_in_dwelling <- revalue(as.factor(datfin$Q537pesd), c("1"="Yes", 
+                                                                       "2"="No",
+                                                                       "9"=NA))
+datfin$pesticides_in_garden <- revalue(as.factor(datfin$Q537pesg), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "9"=NA))
+datfin$herbicides_in_garden <- revalue(as.factor(datfin$Q537Her), c("1"="Yes", 
+                                                                    "2"="No",
+                                                                    "9"=NA))
+# communication
+datfin$telephone <- revalue(as.factor(datfin$Q61phon), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))                      
+datfin$cellphone <- revalue(as.factor(datfin$Q62cell), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))
+datfin$household_internet <- revalue(as.factor(datfin$Q65Int1), c("1"="Yes", 
+                                                                  "2"="No",
+                                                                  "9"=NA))
+datfin$mobile_internet <- revalue(as.factor(datfin$Q65Int7), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))
+datfin$work_internet <- revalue(as.factor(datfin$Q65Int4), c("1"="Yes", 
+                                                             "2"="No",
+                                                             "9"=NA))
+datfin$mail_access <- revalue(as.factor(datfin$Q67Mail),
+                              c("1" = "Delivered to the dwelling",
+                                "2" = "Delivered to a post box",
+                                "3" = "Through friend or neighbour",
+                                "4" = "Through a shop",
+                                "5" = "Through a school",
+                                "6" = "Through a workplace",
+                                "7" = "Through a local authority",
+                                "8" = "Do not receive mail",
+                                "9" = "Other",
+                                "99" = NA))
+# transport
+datfin$minibus_use <- datfin$Q68Trta
+datfin$minibus_use[datfin$Q68Trta==88] <- NA
+datfin$minibus_use[datfin$Q68Trta==99] <- NA
+datfin$distance_to_minibus <- datfin$Q68Dtta
+datfin$distance_to_minibus[datfin$Q68Dtta==888] <- NA
+datfin$distance_to_minibus[datfin$Q68Dtta==999] <- NA
+datfin$bus_use <- datfin$Trbu
+datfin$bus_use[datfin$Q69Trbu==88] <- NA
+datfin$bus_use[datfin$Q69Trbu==99] <- NA
+datfin$distance_to_bus <- datfin$Q69Dtbu
+datfin$distance_to_bus[datfin$Q69Dtbu==888] <- NA
+datfin$distance_to_bus[datfin$Q69Dtbu==999] <- NA
+datfin$train_use <- datfin$Q610Trtr
+datfin$train_use[datfin$Q610Trtr==88] <- NA
+datfin$train_use[datfin$Q610Trtr==99] <- NA
+datfin$distance_to_train <- datfin$Q610Dttr
+datfin$distance_to_train[datfin$Q610Dttr==888] <- NA
+datfin$distance_to_train[datfin$Q610Dttr==999] <- NA
+
+# not including health questions
+
+# food security
+datfin$food_security_adult_hungry <- revalue(as.factor(datfin$Q76Hung), 
+                                             c("1"="Never", 
+                                               "2"="Seldom",
+                                               "3"="Sometimes",
+                                               "4"="Often",
+                                               "5"="Always",
+                                               "6"="Not applicable",
+                                               "9"=NA))
+datfin$food_security_child_hungry <- revalue(as.factor(datfin$Q77Hung5), 
+                                             c("1"="Never", 
+                                               "2"="Seldom",
+                                               "3"="Sometimes",
+                                               "4"="Often",
+                                               "5"="Always",
+                                               "6"="Not applicable",
+                                               "9"=NA))
+datfin$young_person_left <- revalue(as.factor(datfin$Q78STRK),
+                                    c("1"="Yes",
+                                      "2"="No",
+                                      "3"="Do not know",
+                                      "4"="Not applicable",
+                                      "9"=NA))
+datfin$food_security_out_of_money_in12mths <- revalue(as.factor(datfin$Q79MF),
+                                                      c("1"="Yes",
+                                                        "2"="No",
+                                                        "9"=NA))
+datfin$food_security_out_of_money_5in30days <- revalue(as.factor(datfin$Q79MF5),
+                                                       c("1"="Yes",
+                                                         "2"="No",
+                                                         "9"=NA))
+datfin$food_security_cut_meals_in12mths <- revalue(as.factor(datfin$Q710Meal),
+                                                   c("1"="Yes",
+                                                     "2"="No",
+                                                     "9"=NA))
+datfin$food_security_cut_meals_5in30days <- revalue(as.factor(datfin$Q710Meal5),
+                                                    c("1"="Yes",
+                                                      "2"="No",
+                                                      "9"=NA))
+datfin$food_security_skip_meals_in12mths <- revalue(as.factor(datfin$Q711Less),
+                                                    c("1"="Yes",
+                                                      "2"="No",
+                                                      "9"=NA))
+datfin$food_security_skip_meals_5in30days <- revalue(as.factor(datfin$Q711Less5),
+                                                     c("1"="Yes",
+                                                       "2"="No",
+                                                       "9"=NA))
+datfin$food_security_smaller_variety_in12mths <- revalue(as.factor(datfin$Q712Lfd),
+                                                         c("1"="Yes",
+                                                           "2"="No",
+                                                           "9"=NA))
+datfin$food_security_smaller_variety_5in30days <- revalue(as.factor(datfin$Q712Lfd5),
+                                                          c("1"="Yes",
+                                                            "2"="No",
+                                                            "9"=NA))
+# dietary diversity
+datfin$diet_cereals <- datfin$Q713MAIZE # maize, rice, sorghum, millet, bread, cereals
+datfin$diet_cereals[datfin$Q713MAIZE==99] <- NA
+datfin$diet_potatoes <- datfin$Q713POTA # potatoes, sweet potatoes, cassava
+datfin$diet_potatoes[datfin$Q713POTA==99] <- NA
+datfin$diet_beans <- datfin$Q713BEAN # beans, peas, groundnuts, other nuts
+datfin$diet_beans[datfin$Q713BEAN==99] <- NA
+datfin$diet_greens <- datfin$Q713SPINASH # spinach and green leaves
+datfin$diet_greens[datfin$Q713SPINASH==99] <- NA
+datfin$diet_vegetables <- datfin$Q713OTHVEG # other vegetables: carrots, tomatoes, etc
+datfin$diet_vegetables[datfin$Q713OTHVEG==99] <- NA
+datfin$diet_fruit <- datfin$Q713FRUIT # fruit
+datfin$diet_fruit[datfin$Q713FRUIT==99] <- NA
+datfin$diet_meat <- datfin$Q713MEAT # beef, goat, poultry, pork, fish, eggs
+datfin$diet_meat[datfin$Q713MEAT==99] <- NA
+datfin$diet_dairy <- datfin$Q713dairy # milk, yogurt, dairy
+datfin$diet_dairy[datfin$Q713dairy==99] <- NA
+datfin$diet_sugar <- datfin$Q713SUG # sugar and sugar products
+datfin$diet_sugar[datfin$Q713SUG==99] <- NA
+datfin$diet_fat <- datfin$Q713OIL # oils, fat and butter
+datfin$diet_fat[datfin$Q713OIL==99] <- NA
+
+# household livelihoods
+
+# agricultural activities
+datfin$agriculture_prod <- revalue(as.factor(datfin$Q81Agri), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA))               
+datfin$livestock_prod <- revalue(as.factor(datfin$Q83Live), c("1"="Yes", 
+                                                              "2"="No",
+                                                              "8"="No",
+                                                              "9"=NA))
+datfin$poultry_prod <- revalue(as.factor(datfin$Q83Poul), c("1"="Yes", 
+                                                            "2"="No",
+                                                            "8"="No",
+                                                            "9"=NA))                   
+datfin$grains_foodcrops_prod <- revalue(as.factor(datfin$Q83grai), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "8"="No",
+                                                                     "9"=NA))
+datfin$industrial_crops_prod <- revalue(as.factor(datfin$Q83Indus), c("1"="Yes", 
+                                                                      "2"="No",
+                                                                      "8"="No",
+                                                                      "9"=NA))          
+datfin$fruit_veg_prod <- revalue(as.factor(datfin$Q83fruit), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "8"="No",
+                                                               "9"=NA))
+datfin$fodder_pasture_prod <- revalue(as.factor(datfin$Q83Fod), c("1"="Yes", 
+                                                                  "2"="No",
+                                                                  "8"="No",
+                                                                  "9"=NA))            
+datfin$fish_aquaculture_prod <- revalue(as.factor(datfin$Q83Fish), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "8"="No",
+                                                                     "9"=NA))
+datfin$forestry_prod <- revalue(as.factor(datfin$Q83For), c("1"="Yes", 
+                                                            "2"="No",
+                                                            "8"="No",
+                                                            "9"=NA))                  
+datfin$game_prod <- revalue(as.factor(datfin$Q83Game), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "8"="No",
+                                                         "9"=NA))
+datfin$other_food_prod <- revalue(as.factor(datfin$Q83Oth), c("1"="Yes", 
+                                                              "2"="No",
+                                                              "8"="No",
+                                                              "9"=NA))                
+datfin$farm_reason <- revalue(as.factor(datfin$Q84Use),
+                              c("1" = "Main source of food",
+                                "2" = "Main source of income",
+                                "3" = "Extra source of income",
+                                "4" = "Extra source of food",
+                                "5" = "Leisure or hobby",
+                                "8" = NA,
+                                "9" = NA))
+datfin$sell_agri_products <- revalue(as.factor(datfin$Q85aSell),
+                                     c("1" = "Yes",
+                                       "2" = "No",
+                                       "8" = NA,
+                                       "9" = NA))
+datfin$buyers_agri_products <- revalue(as.factor(datfin$Q85bSProd), c("1"="Local buyers", 
+                                                                      "2"="Neighbouring cities",
+                                                                      "3"="Formal markets",
+                                                                      "4"="Export agencies",
+                                                                      "5"="Other",
+                                                                      "8" = NA,
+                                                                      "9"=NA))
+datfin$agri_training <- revalue(as.factor(datfin$Q86aTrain), c("1"="Yes", 
+                                                                   "2"="No",
+                                                                   "8"="No",
+                                                                   "9"=NA))                  
+datfin$agri_extension <- revalue(as.factor(datfin$Q86aVis), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "8"="No",
+                                                                     "9"=NA))
+datfin$agri_grants <- revalue(as.factor(datfin$Q86aGrnt), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "8"="No",
+                                                               "9"=NA))                    
+datfin$agri_loans <- revalue(as.factor(datfin$Q86aLoan), c("1"="Yes", 
+                                                             "2"="No",
+                                                             "8"="No",
+                                                             "9"=NA))
+datfin$agri_loan_inputs <- revalue(as.factor(datfin$Q86aInpL), c("1"="Yes", 
+                                                                         "2"="No",
+                                                                         "8"="No",
+                                                                         "9"=NA))               
+datfin$agri_loan_free <- revalue(as.factor(datfin$Q86aInpF), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "8"="No",
+                                                                     "9"=NA))
+datfin$agri_livestock_dipping_vaccines <- revalue(as.factor(datfin$Q86aDip), c("1"="Yes", 
+                                                                                                       "2"="No",
+                                                                                                       "8"="No",
+                                                                                                       "9"=NA))
+datfin$agri_other_assistance <- revalue(as.factor(datfin$Q86aOth), c("1"="Yes", 
+                                                                                   "2"="No",
+                                                                                   "8"="No",
+                                                                                   "9"=NA))
+datfin$agri_gov_assist <- revalue(as.factor(datfin$Q86bAGRIASSIST), c("1"="Yes", 
+                                                                       "2"="No",
+                                                                       "8"="No",
+                                                                       "9"=NA))                
+datfin$agri_nongov_assist <- revalue(as.factor(datfin$Q86CAnyASSIST), c("1"="Yes", 
+                                                                             "2"="No",
+                                                                             "8"="No",
+                                                                             "9"=NA))
+datfin$livestock_cattle <- datfin$Q87Cattle
+datfin$livestock_cattle[datfin$Q87Cattle==88888] <- NA
+datfin$livestock_cattle[datfin$Q87Cattle==99999] <- NA
+datfin$livestock_sheep <- datfin$Q87Sheep
+datfin$livestock_sheep[datfin$Q87Sheep==88888] <- NA
+datfin$livestock_sheep[datfin$Q87Sheep==99999] <- NA
+datfin$livestock_goats <- datfin$Q87Goat
+datfin$livestock_goats[datfin$Q87Goat==88888] <- NA
+datfin$livestock_goats[datfin$Q87Goat==99999] <- NA
+datfin$livestock_pigs <- datfin$Q87Pigs
+datfin$livestock_pigs[datfin$Q87Pigs==88888] <- NA
+datfin$livestock_pigs[datfin$Q87Pigs==99999] <- NA
+datfin$livestock_chickens <- datfin$Q87Chickens
+datfin$livestock_chickens[datfin$Q87Chickens==88888] <- NA
+datfin$livestock_chickens[datfin$Q87Chickens==99999] <- NA
+datfin$backyard_garden <- revalue(as.factor(datfin$Q88aBack), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "8"="No",
+                                                                "9"=NA))
+datfin$farm_land <- revalue(as.factor(datfin$Q88aFarm), c("1"="Yes", 
+                                                          "2"="No",
+                                                          "8"="No",
+                                                          "9"=NA))                      
+datfin$school_garden <- revalue(as.factor(datfin$Q88aSchl), c("1"="Yes", 
+                                                              "2"="No",
+                                                              "8"="No",
+                                                              "9"=NA))
+datfin$communal_garden <- revalue(as.factor(datfin$Q88aComm), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "8"="No",
+                                                                "9"=NA))                
+datfin$verge_garden <- revalue(as.factor(datfin$Q88aVRd), c("1"="Yes", 
+                                                            "2"="No",
+                                                            "8"="No",
+                                                            "9"=NA))
+datfin$other_crops <- revalue(as.factor(datfin$Q88aOth), c("1"="Yes", 
+                                                           "2"="No",
+                                                           "8"="No",
+                                                           "9"=NA))                    
+datfin$productive_land_ha <- revalue(as.factor(datfin$Q88bHect), 
+                                     c("1"="Less than 5000m2", 
+                                       "2"="5000 to 9999m2",
+                                       "3"="1 to 2 ha",
+                                       "4"="2 to 5 ha",
+                                       "5"="5 to 10 ha",
+                                       "6"="10 to 20 ha",
+                                       "7"="20 or more ha",
+                                       "8"="Do not know",
+                                       "88"=NA,
+                                       "99"=NA))
+datfin$productive_land_access <- revalue(as.factor(datfin$Q88cTenu),
+                                         c("1"="Owns the land",
+                                           "2"="Rents the land",
+                                           "3"="Sharecropping",
+                                           "4"="Tribal authority",
+                                           "5"="State land",
+                                           "6"="Other",
+                                           "7"="Do not know",
+                                           "88"=NA,
+                                           "99"=NA))
+
+# income and expenditure
+datfin$income_source <- revalue(as.factor(datfin$Q89bMain),
+                                c("1" = "Salaries/wages/commission",
+                                  "2" = "Business income",
+                                  "3" = "Remittances",
+                                  "4" = "Pensions",
+                                  "5" = "Grants",
+                                  "6" = "Sales of farming products",
+                                  "7" = "Other income",
+                                  "88" = "No income",
+                                  "99" = NA))
+datfin$income_minimum <- datfin$Q812Netincome
+datfin$income_vs_minimum <- revalue(as.factor(datfin$Q813Mincome),
+                                    c("1"="Much higher",
+                                      "2"="Higher",
+                                      "3"="More or less the same",
+                                      "4"="Lower",
+                                      "5"="Much lower",
+                                      "9"=NA))
+datfin$household_expenditure <- revalue(as.factor(datfin$Q814Exp),
+                                        c("1"="R0",
+                                          "2"="R1-R199",
+                                          "3"="R200-R399",
+                                          "4"="R400-R799",
+                                          "5"="R800-R1199",
+                                          "6"="R1200-R1799",
+                                          "7"="R1800-R2499",
+                                          "8"="R2500-R4999",
+                                          "9"="R5000-R9999",
+                                          "10"="R10000 or more",
+                                          "11"="Do not know",
+                                          "12"="Refuse to answer",
+                                          "99"=NA))
+datfin$vehicle <- revalue(as.factor(datfin$Q815aVehicle), c("1"="Yes", 
+                                                            "2"="No",
+                                                            "9"=NA))                        
+datfin$radio <- revalue(as.factor(datfin$Q816aRad), c("1"="Yes", 
+                                                      "2"="No",
+                                                      "9"=NA)) 
+datfin$domestic_worker <- revalue(as.factor(datfin$Q817DomW), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA)) 
+datfin$land_grant_residence <- revalue(as.factor(datfin$Q818GrantRes), c("1"="Yes", 
+                                                                         "2"="No",
+                                                                         "9"=NA)) 
+datfin$land_grant_farm <- revalue(as.factor(datfin$Q818GrantFarm), c("1"="Yes", 
+                                                                     "2"="No",
+                                                                     "9"=NA)) 
+datfin$household_perceived_wealth <- revalue(as.factor(datfin$Q819Status),
+                                             c("1"="Wealthy",
+                                               "2"="Very comfortable",
+                                               "3"="Reasonably comfortable",
+                                               "4"="Just getting along",
+                                               "5"="Poor",
+                                               "6"="Very poor",
+                                               "9"=NA))
+datfin$household_perceived_happiness <- revalue(as.factor(datfin$Q820Happy),
+                                                c("1"="Happier",
+                                                  "2"="The same",
+                                                  "3"="Less happy",
+                                                  "4"="Refuse to answer",
+                                                  "5"="Do not know",
+                                                  "9"=NA))
+datfin$own_TV <- revalue(as.factor(datfin$Q821TV), c("1"="Yes", 
+                                                     "2"="No",
+                                                     "9"=NA))                         
+datfin$own_pool <- revalue(as.factor(datfin$Q821Pool), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))                         
+datfin$own_dvd <- revalue(as.factor(datfin$Q821DVD), c("1"="Yes", 
+                                                       "2"="No",
+                                                       "9"=NA))                         
+datfin$own_paytv <- revalue(as.factor(datfin$Q821Paytv), c("1"="Yes", 
+                                                           "2"="No",
+                                                           "9"=NA))                         
+datfin$own_aircon <- revalue(as.factor(datfin$Q821AC), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))                         
+datfin$own_computer <- revalue(as.factor(datfin$Q821Comp), c("1"="Yes", 
+                                                             "2"="No",
+                                                             "9"=NA))                         
+datfin$own_vacuum <- revalue(as.factor(datfin$Q821Vac), c("1"="Yes", 
+                                                          "2"="No",
+                                                          "9"=NA))                         
+datfin$own_dishwasher <- revalue(as.factor(datfin$Q821DishW), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA))                         
+datfin$own_washingmachine <- revalue(as.factor(datfin$Q821WashM), c("1"="Yes", 
+                                                                    "2"="No",
+                                                                    "9"=NA))                         
+datfin$own_tumbledryer <- revalue(as.factor(datfin$Q821TumD), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA))                         
+datfin$own_freezer <- revalue(as.factor(datfin$Q821Freezer), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))                         
+datfin$own_fridge <- revalue(as.factor(datfin$Q821Fridge), c("1"="Yes", 
+                                                             "2"="No",
+                                                             "9"=NA))                         
+datfin$own_stove <- revalue(as.factor(datfin$Q821EStove), c("1"="Yes", 
+                                                            "2"="No",
+                                                            "9"=NA))                         
+datfin$own_microwave <- revalue(as.factor(datfin$Q821MicroW), c("1"="Yes", 
+                                                                "2"="No",
+                                                                "9"=NA))                         
+datfin$own_sink <- revalue(as.factor(datfin$Q821sink), c("1"="Yes", 
+                                                         "2"="No",
+                                                         "9"=NA))                         
+datfin$own_homesecurity <- revalue(as.factor(datfin$Q821Secure), c("1"="Yes", 
+                                                                   "2"="No",
+                                                                   "9"=NA))                         
+datfin$own_hometheatre <- revalue(as.factor(datfin$Q821HomeTH), c("1"="Yes", 
+                                                                  "2"="No",
+                                                                  "9"=NA))                         
+datfin$own_hotwater <- revalue(as.factor(datfin$Q821Geyser), c("1"="Yes", 
+                                                               "2"="No",
+                                                               "9"=NA))                         
+datfin$own_solarwater <- revalue(as.factor(datfin$Q821SolarG), c("1"="Yes", 
+                                                                 "2"="No",
+                                                                 "9"=NA))                         
+datfin$own_solarpower <- revalue(as.factor(datfin$Q821SolarP), c("1"="Yes", 
+                                                                 "2"="No",
+                                                                 "9"=NA))                         
+
+
+# write datafile
+#write.csv(datfin, file = "E:\\Food4Cities\\iterative model\\model v1\\household survey food utilisation data - cleaned.csv")
+datfin <- read.csv("E:\\Food4Cities\\iterative model\\model v1\\household survey food utilisation data - cleaned.csv")
+
+# create operational variables where required
+library(scales)
+
+# demographics
+datfin$gender_dummy <- as.numeric(datfin$demo_gender=="Female")
+datfin$age_rescaled <- rescale(datfin$demo_age,c(0,1))
+datfin$ethnicity_dummy <- as.numeric(datfin$demo_group=="Black African")
+datfin$language_dummy <- as.numeric(datfin$language=="Afrikaans" | datfin$language=="English")
+
+# housing
+datfin$dwelling_dummy <- as.numeric(datfin$dwelling=="Separate house")
+datfin$wall_dummy <- as.numeric(datfin$wall_material=="Bricks")
+datfin$wall_condition_dummy <- as.numeric(datfin$wall_condition=="Good" | datfin$wall_condition=="Very good")
+datfin$roof_dummy <- as.numeric(datfin$roof_material=="Corrugated iron")
+datfin$roof_condition_dummy <- as.numeric(datfin$roof_condition=="Good" | datfin$roof_condition=="Very good")
+datfin$floor_dummy <- as.numeric(datfin$floor=="Cement or concrete")
+#datfin$floor_condition_dummy <- as.numeric(datfin$floor_condition=="Good" | datfin$floor_condition=="Very good")
+datfin$rooms_rescaled <- rescale(datfin$house_rooms_all,c(0,1))
+datfin$kitchen_dummy <- as.numeric(datfin$house_rooms_kitchen>0)
+datfin$tenure_dummy <- as.numeric(datfin$tenure_status=="Owned and fully paid off")
+datfin$subsidy_dummy <- as.numeric(datfin$property_subsidised=="Yes")
+
+# income
+datfin$income_salary_dummy <- as.numeric(datfin$income_source=="Salaries/wages/commission")
+datfin$income_grants_dummy <- as.numeric(datfin$income_source=="Grants")
+datfin$income_minimum[datfin$income_minimum==9999999] <- NA
+datfin$income_min_rescaled <- rescale(datfin$income_minimum, c(0,1))
+datfin$income_vs_min_dummy <- as.numeric(datfin$income_vs_minimum=="Much lower" | datfin$income_vs_minimum=="Lower")
+
+# expenditure
+datfin$expenditure_dummy <- as.numeric(datfin$household_expenditure=="R0" | datfin$household_expenditure=="R1-R199" | datfin$household_expenditure=="R200-R399" | datfin$household_expenditure=="R400-R799")
+
+# wealth
+datfin$vehicle_dummy <- as.numeric(datfin$vehicle=="Yes")
+datfin$radio_dummy <- as.numeric(datfin$radio=="Yes")
+datfin$domestic_worker_dummy <- as.numeric(datfin$domestic_worker=="Yes")
+datfin$land_grant_residence_dummy <- as.numeric(datfin$land_grant_residence=="Yes")
+datfin$land_grant_farm_dummy <- as.numeric(datfin$land_grant_farm=="Yes")
+datfin$wealth_dummy <- as.numeric(datfin$household_perceived_wealth=="Poor" | datfin$household_perceived_wealth=="Very poor")
+datfin$happiness_dummy <- as.numeric(datfin$household_perceived_happiness=="Happier" | datfin$household_perceived_happiness=="The same")
+
+# assets
+datfin$TV_dummy <- as.numeric(datfin$own_TV=="Yes")
+datfin$pool_dummy <- as.numeric(datfin$own_pool=="Yes")
+datfin$DVD_dummy <- as.numeric(datfin$own_dvd=="Yes")
+datfin$payTV_dummy <- as.numeric(datfin$own_paytv=="Yes")
+datfin$aircon_dummy <- as.numeric(datfin$own_aircon=="Yes")
+datfin$computer_dummy <- as.numeric(datfin$own_computer=="Yes")
+datfin$vacuum_dummy <- as.numeric(datfin$own_vacuum=="Yes")
+datfin$dishwasher_dummy <- as.numeric(datfin$own_dishwasher=="Yes")
+datfin$washer_dummy <- as.numeric(datfin$own_washingmachine=="Yes")
+datfin$dryer_dummy <- as.numeric(datfin$own_tumbledryer=="Yes")
+datfin$freezer_dummy <- as.numeric(datfin$own_freezer=="Yes")
+datfin$fridge_dummy <- as.numeric(datfin$own_fridge=="Yes")
+datfin$stove_dummy <- as.numeric(datfin$own_stove=="Yes")
+datfin$microwave_dummy <- as.numeric(datfin$own_microwave=="Yes")
+datfin$sink_dummy <- as.numeric(datfin$own_sink=="Yes")
+datfin$security_dummy <- as.numeric(datfin$own_homesecurity=="Yes")
+datfin$theatre_dummy <- as.numeric(datfin$own_hometheatre=="Yes")
+datfin$hotwater_dummy <- as.numeric(datfin$own_hotwater=="Yes")
+datfin$solwater_dummy <- as.numeric(datfin$own_solarwater=="Yes")
+datfin$solpower_dummy <- as.numeric(datfin$own_solarpower=="Yes")
+
+# water
+datfin$drinking_water_dummy <- as.numeric(datfin$drinking_water_source=="Piped in house" | datfin$drinking_water_source=="Piped in yard")
+datfin$municipal_water[datfin$municipal_water=="9"] <- NA
+datfin$municipal_water_dummy <- as.numeric(datfin$drinking_water_source=="Yes")
+
+# sanitation
+datfin$flush_toilet_dummy <- as.numeric(datfin$toilet_type=="Flush toilet to public sewerage")
+datfin$shared_toilet_dummy <- as.numeric(datfin$toilet_shared=="Yes")
+datfin$inside_toilet_dummy <- as.numeric(datfin$toilet_inside=="In dwelling")
+
+# energy
+datfin$municipal_electricity_dummy <- as.numeric(datfin$mains_electricity=="Yes")
+datfin$inhouse_electricity_dummy <- as.numeric(datfin$electricity_source=="In-house pre-paid meter" | datfin$electricity_source=="In-house conventional meter")
+datfin$blackouts_dummy <- as.numeric(datfin$electricity_cutoff>0)
+datfin$energy_cooking_dummy <- as.numeric(datfin$energy_cooking=="Mains electricity")
+
+# waste
+datfin$waste_removal_dummy <- as.numeric(datfin$rubbish_removal=="Removed by local authority at least once per week")
+
+# environment
+datfin$waste_not_removed_dummy <- as.numeric(datfin$irregular_waste_removal=="Yes")
+datfin$litter_dummy <- as.numeric(datfin$littering=="Yes")
+datfin$water_pollution_dummy <- as.numeric(datfin$water_pollution=="Yes")
+datfin$air_pollution_dummy <- as.numeric(datfin$air_pollution=="Yes")
+datfin$land_degrad_dummy <- as.numeric(datfin$land_degradation=="Yes")
+datfin$excess_noise_dummy <- as.numeric(datfin$excessive_noise=="Yes")
+datfin$other_pollution_dummy <- as.numeric(datfin$other_pollution=="Yes")
+datfin$pesticides_dwelling_dummy <- as.numeric(datfin$pesticides_in_dwelling=="Yes")
+datfin$pesticides_garden_dummy <- as.numeric(datfin$pesticides_in_garden=="Yes")
+datfin$herbicides_garden_dummy <- as.numeric(datfin$herbicides_in_garden=="Yes")
+
+# communication
+datfin$telephone_dummy <- as.numeric(datfin$telephone=="Yes")
+datfin$mobile_dummy <- as.numeric(datfin$cellphone=="Yes")
+datfin$internet_dummy <- as.numeric(datfin$household_internet=="No" & datfin$mobile_internet=="No" & datfin$work_internet=="No")
+datfin$mail_dummy <- as.numeric(datfin$mail_access=="Delivered to the dwelling")
+datfin$no_mail_dummy <- as.numeric(datfin$mail_access=="Do not receive mail")
+
+# transport
+datfin$minibus_use_dummy <- as.numeric(datfin$minibus_use>0)
+datfin$minibus_distance_rescaled <- rescale(datfin$distance_to_minibus,c(0,1))
+datfin$bus_use_dummy <- as.numeric(datfin$bus_use>0)
+datfin$bus_distance_rescaled <- rescale(datfin$distance_to_bus,c(0,1))
+datfin$train_use_dummy <- as.numeric(datfin$train_use>0)
+datfin$train_distance_rescaled <- rescale(datfin$distance_to_train,c(0,1))
+
+# agricultural production
+datfin$livestock_prod_dummy <- as.numeric(datfin$livestock_prod=="Yes")
+datfin$poultry_prod_dummy <- as.numeric(datfin$poultry_prod=="Yes")
+datfin$foodcrop_prod_dummy <- as.numeric(datfin$grains_foodcrops_prod=="Yes")
+datfin$industrial_crop_prod_dummy <- as.numeric(datfin$industrial_crops_prod=="Yes")
+datfin$fruit_veg_prod_dummy <- as.numeric(datfin$fruit_veg_prod=="Yes")
+datfin$fodder_prod_dummy <- as.numeric(datfin$fodder_pasture_prod=="Yes")
+datfin$fish_prod_dummy <- as.numeric(datfin$fish_aquaculture_prod=="Yes")
+datfin$forestry_prod_dummy <- as.numeric(datfin$forestry_prod=="Yes")
+datfin$game_prod_dummy <- as.numeric(datfin$game_prod=="Yes")
+datfin$other_prod_dummy <- as.numeric(datfin$other_food_prod=="Yes")
+
+# agricultural activities
+datfin$farming_main_income <- as.numeric(datfin$farm_reason=="Main source of food" | datfin$farm_reason=="Main source of income")
+datfin$sell_agri_products_dummy <- as.numeric(datfin$sell_agri_products=="Yes")
+datfin$agri_training_dummy <- as.numeric(datfin$agri_training=="Yes")
+datfin$agri_extension_dummy <- as.numeric(datfin$agri_extension=="Yes")
+datfin$agri_grants_dummy <- as.numeric(datfin$agri_grants=="Yes")
+datfin$agri_loans_dummy <- as.numeric(datfin$agri_loans=="Yes")
+datfin$agri_loan_inputs_dummy <- as.numeric(datfin$agri_loan_inputs=="Yes")
+datfin$agri_loan_free_dummy <- as.numeric(datfin$agri_loan_free=="Yes")
+datfin$agri_dips_dummy <- as.numeric(datfin$agri_livestock_dipping_vaccines=="Yes")
+datfin$govt_agri_assistance_dummy <- as.numeric(datfin$agri_gov_assist=="Yes")
+datfin$nongovt_agri_assistance_dummy <- as.numeric(datfin$agri_nongov_assist=="Yes")
+
+# agricultural assets
+datfin$cattle_dummy <- as.numeric(datfin$livestock_cattle>0)
+datfin$goats_dummy <- as.numeric(datfin$livestock_goats>0)
+datfin$sheep_dummy <- as.numeric(datfin$livestock_sheep>0)
+datfin$pigs_dummy <- as.numeric(datfin$livestock_pigs>0)
+datfin$chickens_dummy <- as.numeric(datfin$livestock_chickens>0)
+datfin$farmland_dummy <- as.numeric(datfin$farm_land=="Yes")
+datfin$backyard_garden_dummy <- as.numeric(datfin$backyard_garden=="Yes")
+datfin$school_garden_dummy <- as.numeric(datfin$school_garden=="Yes")
+datfin$communal_garden_dummy <- as.numeric(datfin$communal_garden=="Yes")
+datfin$verge_garden_dummy <- as.numeric(datfin$verge_garden=="Yes")
+datfin$productive_land_size_dummy <- as.numeric(datfin$productive_land_ha=="Less than 5000m2")
+datfin$productive_land_access_dummy <- as.numeric(datfin$productive_land_access=="Owns the land")
+
+# write datafile
+write.csv(datfin, file = "E:\\Food4Cities\\iterative model\\model v1\\household survey food utilisation data - cleaned with dummy vars.csv")
