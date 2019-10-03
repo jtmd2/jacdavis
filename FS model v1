@@ -1,0 +1,509 @@
+# iterative model v1
+# 25 March 2019
+# edited 1 April 2019
+# Jac Davis
+
+setwd("E:\\Food4Cities\\iterative model\\model v1")
+
+# theta <- a(i) + b(j) + c(k) + d(l)
+# where
+# theta = food/nutrition security for pixel
+# a(i) = geographic parameters for pixel i
+# b(j) = food availability parameters for location j
+# c(k) = food access parameters for location k
+# d(l) = food utilization parameters for location l
+
+# general setup
+library(rgdal)
+library(ggmap)
+library(dismo)
+library(rgeos)
+library(dplyr)
+library(data.table)
+
+# google api key for map data
+# register_google(key = "AIzaSyA4kvprW0CVj6BmjqaTOZZQ9vZK73TWFvw")
+# register_google(key = "AIzaSyBc_8LjJJrs1igirbCq4TvpGZFJuHrSBm8")
+# functions
+
+# merge multiple csvs
+multimerge <- function(mypath){
+  filenames = list.files(path=mypath,
+                         full.names=TRUE)
+  datalist = lapply(filenames, function(x)
+  {read.csv(file=x,header=T)})
+  Reduce(function(x,y){merge(x,y)},
+         datalist)
+}
+
+# extract shapefile data
+shape_extract <- function(mydata){
+  mydata_ff <- fortify(mydata) # convert polygons to df
+  mydata$ids <- row.names(mydata) # add id variable to df
+  mydata_ff <- left_join(mydata_ff, mydata@data) # join attributes to df
+  return(mydata_ff)
+  # figure out how to save procedurally with different datafile names
+}
+
+# map shapefile data
+shapemap <- function(mydata, myfill,
+                     mylabels, mytitle){
+  map <- ggplot(mydata,
+              aes(long, lat)) +
+    geom_polygon(data=mydata,
+               aes(group=group,
+                   fill=myfill)) +
+    coord_equal() +
+    labs(x = "Easting (m)", y = "Northing (m)",
+       fill = mylabels) +
+    ggtitle(mytitle) +
+    theme_bw() +
+    theme(line=element_blank())
+  plot(map)
+}
+
+shapemap(agri_ff,
+         agri_ff$AGRI_AREA,
+         "Agricultural zone",
+         "Cape Town Agricultural Zones 2016")
+
+
+# layer a: geographic information
+
+# basic map of Cape Town
+#CT_map <- qmap("Cape Town")
+#CT_map
+
+# import shapefile data
+agri <- readOGR(dsn = "Agricultural land 2016", layer = "SL_AGRC_LAND")
+bio <- readOGR(dsn = "Biodiversity network with protected areas 2017", layer = "SL_BDVR_NTWR")
+SDRs <- readOGR(dsn = "Area based service delivery regions", layer = "SL_ABSD")
+build <- readOGR(dsn = "Building footprints 2016", layer = "SL_2D_BSC_FTPR")
+
+# data cleaning
+head(agri@data)
+sapply(agri@data,class)
+
+# using ggmap
+
+# extract data frame
+agri_f <- fortify(agri) # convert polygons to df
+agri$id <- row.names(agri) # add id variable to agri
+head(agri@data) # check data before converting
+agri_f <- left_(agri_f, agri@data) # join attributes to df
+
+map <- ggplot(agri_f,
+              aes(long, lat)) +
+  geom_polygon(data=agri_f,
+               aes(group=group,
+                   fill=AGRI_AREA)) +
+  coord_equal() +
+  labs(x = "Easting (m)", y = "Northing (m)",
+       fill = "Agricultural zone") +
+  ggtitle("Cape Town Agricultural Zones 2016") +
+  theme_bw() +
+  theme(line=element_blank())
+map
+
+map2 <- map +  
+  geom_point(aes(x,y),
+             data=pointsdata,
+             size=3,
+             color="darkblue",
+             alpha=.5)
+map2
+
+# sample points from map
+set.seed(25)
+points <- spsample(agri, n=1000, "random", pch=3)
+pointsdata <- as.data.frame(points)
+
+# map points to google map
+mapPoints <- ggmap(get_map(location="Cape Town")) +
+  geom_point(aes(x,y),
+             data=pointsdata,
+             size=3,
+             color="darkblue",
+             alpha=.5)
+mapPoints
+
+
+# extract pixel values for points from agri
+data_agri <- data.frame(coordinates(points),
+                        extract(agri, points))
+
+# biodiversity data
+# extract data frame
+bio_f <- fortify(bio) # convert polygons to df
+bio$id <- row.names(bio) # add id variable to agri
+head(bio@data) # check data before converting
+bio_f <- left_join(bio_f, bio@data) # join attributes to df
+
+map <- ggplot(bio_f,
+              aes(long, lat,
+                  group=group,
+                  fill=CBA_Name_)) +
+  geom_polygon() +
+  coord_equal() +
+  labs(x = "Easting (m)", y = "Northing (m)",
+       fill = "Biodiversity Zone") +
+  ggtitle("Cape Town Biodiversity Zones 2017") +
+  theme_bw() +
+  theme(line=element_blank())
+map
+
+# extract pixel values for points from bio
+data_bio <- data.frame(coordinates(points),
+                       extract(bio, points))
+
+
+# layer b: food availability information
+
+# business license data
+businesses <- read.csv("Busines Licences DevData 20180220.csv") # read in data
+head(businesses) # check data
+sapply(businesses,class)
+
+levels(businesses$Licence.Type) # check types of businesses
+food_businesses <- businesses[businesses$Licence.Type=="Food" , businesses$Licence.Type=="Hawker",] # make dataset with only food businesses
+
+# industrial supplier data
+industrials <- read.csv("Merged_Cape_Town_Industrial.csv")
+#View(table(industrials$Standardised.Economic.Activity))
+industrials$food <- NULL #identify food-related industrial entities
+industrials_food <- industrials[industrials$Standardised.Economic.Activity %in%
+                                  c("Beverage serving activities" ,
+                                    "Cargo handling" , "Courier activities" , "Courier activities", "Courier company" ,
+                                    "Event catering" , "Event Catering" , "Event catering and other food service activities" ,
+                                    "food service activities of take-away counters" , "Food service activities of take-away counters" ,
+                                    "Food service activities of take away counters" , "Food service and take away counters" ,
+                                    "Freight air transport" , "Freight rail transport" , "Freight transport by road" ,
+                                    "Hunting, trapping and related service activities" , "Manufacture bakery products" ,
+                                    "Manufacture of agricultural and forestry machinery" , "Manufacture of bakery products" ,
+                                    "Manufacture of beverages" , "Manufacture of butter and cheese" , "Manufacture of cocoa, chocolate and sugar confectionery" ,
+                                    "Manufacture of coffee, coffee substitutes and tea" , "Manufacture of compound cooking fats, margarine and edible oils" ,
+                                    "Manufacture of dairy products" , "Manufacture of fertilizers and nitrogen compounds" ,
+                                    "Manufacture of flour and grain mill products, including rice and vegetable milling; grain mill residues" ,
+                                    "Manufacture of grain mill products" , "Manufacture of ice cream and other edible ice (whether or not containing cream or chocolate)" ,
+                                    "Manufacture of machinery for food, beverage and tobacco processing" , "Manufacture of malt liquors such as beer, ale, porter and stout" ,
+                                    "Manufacture of metal containers, e.g. cans and tins" , "Manufacture of other food products" ,
+                                    "Manufacture of other food products n.e.c." , 
+                                    "Manufacture of prepared and preserved meat, including sausage; by-products (hides, bones, etc.)" ,
+                                    "Manufacture of prepared and preserved meat, including sausage; by-products (hides, bones, etc.) " ,
+                                    "Manufacture of prepared animal feeds" , "Manufacture of prepared meals and dishes" , "Manufacture of soft drinks; production of mineral waters and other bottled waters" ,
+                                    "Manufacture of spices, condiments, vinegar, yeast, egg products, soups and other food products n.e.c." , 
+                                    "Manufacture of spices, condiments, vinegar, yeast, egg products, soups and other food products n.e.c. " ,
+                                    "Manufacture of starches and starch products" , "Manufacture of sugar" , "Manufacture of vegetable and animal oils and fats" ,
+                                    "Manufacture of wines" , "Manufacture of wooden containers" , "Manufacturing of beverages" , "Manufacturing of food products" ,
+                                    "Marine fishing" , "Other processing and preserving of meat" , "Other restaurant and mobile food service activities" ,
+                                    "Other service activities incidental to land transportation" , "Other transportation support activities" ,
+                                    "Packaging activities" , "Processing and preserving of fish, crustaceans and molluscs" , "Processing and preserving of fruit and vegetables" ,
+                                    "Processing and preserving of meat" , "Processing of fresh milk" ,
+                                    "Renting of agricultural machinery and equipment" , "Renting of land transport equipment" ,
+                                    "Renting of water transport equipment" , "Repair of household appliances and home and garden equipment" ,
+                                    "Restaurants and mobile food service activities" , 
+                                    "Retail in meat and meat products" ,
+                                    "Retail sale in non-specialised stores with food, beverages and tobacco predominating" ,
+                                    "Retail sale in non-specialised stores with food, beverages or tobacco predominating" ,
+                                    "Retail sale in non-specialized stores with food, beverages or tobacco predominating" ,
+                                    "Retail sale of beverages in specialised stores" , "Retail sale of food in specialised stores" , "Retail sale of food, beverages and tobacco in specialised stores" ,
+                                    "Retail trade in bakery products" , "Retail trade in fresh fruit and vegetables" , "Retail trade in meat and meat products" ,
+                                    "Sea and coastal freight water transport" , "Service activities incidental to land transportation" , "Service activities incidental to water transportation" ,
+                                    "Support activities for animal production" , "Support activities for crop production" , "Warehousing and storage" ,
+                                    "Water collection, treatment and supply" , "Wholesale of agricultural machinery, equipment and supplies" ,
+                                    "Wholesale of agricultural raw materials and live animals" , "Wholesale of food, beverages and tobacco" ,
+                                    "Wholesale of meat and meat products" , "Wholesale trade in beverages" , "Wholesale trade in foodstuff" ,
+                                    "wholesale trade in foodstuffs" , "Wholesale trade in foodstuffs"),]
+
+# look up business locations from addresses (ONCE)
+food_businesses$address <- paste(food_businesses$Business.Location, food_businesses$Business.Suburb,"Cape Town","South Africa", sep=", ")
+#food_business_geo <- mutate_geocode(food_businesses, address) # RUN THIS ONLY ONCE
+industrials_food$address <- paste(industrials_food$Address,industrials_food$Suburb,"Cape Town", "South Africa", sep = ", ")
+#industrials_food_geo <- mutate_geocode(industrials_food, address) # RUN THIS ONLY ONCE
+
+# write business locations to csv
+write.csv(food_business_geo, "geocoded_food_businesses.csv")
+write.csv(industrials_food_geo, "geocoded_food_industrial.csv")
+
+# map food businesses
+retail <- read.csv("geocoded_food_businesses.csv")
+industrial <- read.csv("geocoded_food_industrial.csv")
+addressmaps <- c(retail,industrial)
+
+fmap <- qmap("Cape Town") +
+  geom_point(aes(lon,lat),
+             data=industrial,
+             size=2,
+             color="darkblue",
+             alpha=.5)
+fmap
+
+
+# density map
+foodbusinessmap <- qmap("Cape Town")+
+  stat_density2d(aes(x=lon,
+                     y=lat,
+                     fill=..level..,
+                     alpha=..level..),
+                 data=industrial,
+                 geom="polygon")
+foodbusinessmap
+
+foodbusinessmappoints <- foodbusinessmap +
+  geom_point(aes(x,y),
+             data=pointsdata,
+             size=2,
+             color="darkred",
+             alpha=.5)
+foodbusinessmappoints
+
+# estimate food density for each point
+library(MASS)
+fb1 <- industrial[!is.na(industrial$lat),]
+dens <- kde2d(fb1$lat,fb1$lon) # estimate food business density
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into data frame
+names(gr) <- c("xgr","ygr","zgr")
+mod <- loess(zgr ~xgr*ygr, data = gr) # fit localised nonparametric regression to estimate food density from x and y
+pointsfb <- predict(mod,
+                    newdata=data.frame(xgr=points$x,
+                                       ygr=points$y))
+
+
+
+# layer 3: household data
+household <- read.csv("GHS 2017 Household v1.0 CSV.csv")
+household$place <- household$Stratum
+codes <- read.csv("Copy of MainPlaceLookupTable.csv")
+codes$place <- codes$ï..MP_CODE
+
+household_total <- merge(household,codes,by="place")
+
+# pick out households in Western Cape
+household_CT <- household_total[household_total$PR_NAME=="WESTERN CAPE",]
+
+# look up addresses of sampling areas ("place") in Western Cape
+household_CT$address <- paste(as.character(household_CT$MP_NAME),"Western Cape","South Africa", sep=", ")
+#household_geo <- mutate_geocode(household_CT, address) # RUN THIS ONLY ONCE
+# write Western Cape locations to csv
+write.csv(household_geo, "geocoded_household_total.csv")
+
+household_CT_geo <- read.csv("geocoded_household_total.csv")
+
+# household data selection and cleaning (Western Cape only)
+household_demo <- as.data.frame(cbind(id = household_CT$uqnr,
+                                     place =  household_CT$place,
+                                     gender = household_CT$head_sex,
+                                     age = household_CT$head_age,
+                                     group = household_CT$head_popgrp,
+                                     dwelling = household_CT$Q51MainD,
+                                     roof_material = household_CT$Q52Roof,
+                                     roof_condition = household_CT$Q54RoofC,
+                                     property_market_value = household_CT$Q58Val,
+                                     income = household_CT$Q812Netincome,
+                                     expenses = household_CT$Q814Exp,
+                                     hh_size = household_CT$hholdsz,
+                                     language = household_CT$Q101Lan,
+                                     child_5under = household_CT$chld5yr_hh,
+                                     child_17under = household_CT$chld17yr_hh))
+
+
+household_transport <- as.data.frame(cbind(id = household_CT$uqnr,
+                                           place =  household_CT$place,
+                                           trips_minibus = household_CT$Q68Trta,
+                                           trips_buses = household_CT$Q69Trbu,
+                                           trips_trains = household_CT$Q610Trtr,
+                                           vehicle = household_CT$Q815aVehicle))
+                                               
+
+household_food_security <- as.data.frame(cbind(id = household_CT$uqnr,
+                                               place =  household_CT$place,
+                                               insufficient_food_adult = household_CT$Q76Hung,
+                                               insufficient_food_children = household_CT$Q77Hung5,
+                                               run_out_food_money = household_CT$Q79MF,
+                                               run_out_food_money_5in30 = household_CT$Q79MF5,
+                                               cut_meal_size = household_CT$Q710Meal,
+                                               cut_meal_size_5in30 = household_CT$Q710Meal5,
+                                               skipped_meals = household_CT$Q711Less,
+                                               skipped_meals_5in30 = household_CT$Q711Less5,
+                                               smaller_variety_food = household_CT$Q712Lfd,
+                                               smaller_variety_food_5in30 = household_CT$Q712Lfd5))
+
+
+household_resources <- as.data.frame(cbind(id = household_CT$uqnr,
+                                           place =  household_CT$place,
+                                           establishing_business = household_CT$Q510cBussiness,
+                                           drinking_water_source = household_CT$Q512Drin,
+                                           distance_to_water = household_CT$Q513aDist,
+                                           municipal_water = household_CT$Q516Muni,
+                                           toilet_type = household_CT$Q522Toil,
+                                           toilet_distance = household_CT$Q525bNear,
+                                           access_electricity = household_CT$Q527Access,
+                                           mains_electricity = household_CT$Q528aMains,
+                                           electricity_quality = household_CT$Q529aRate,
+                                           energy_cooking = household_CT$Q531Cook,
+                                           rubbish_removal = household_CT$Q532Rub,
+                                           land_degradation = household_CT$Q536Lan,
+                                           water_pollution = household_CT$Q536Wat,
+                                           telephone = household_CT$Q61phon,
+                                           cellphone = household_CT$Q62cell,
+                                           household_cellphones = household_CT$Q63NrCell,
+                                           household_internet = household_CT$Q65Int1,
+                                           fridge = household_CT$Q821Fridge,
+                                           freezer = household_CT$Q821Freezer,
+                                           stove = household_CT$Q821EStove,
+                                           sink = household_CT$Q821sink
+                                           ))
+
+
+household_prod <- as.data.frame(cbind(id = household_CT$uqnr,
+                                      place =  household_CT$place,
+                                     agriculture_prod = household_CT$Q81Agri,
+                                     livestock_prod = household_CT$Q83Live,
+                                     poultry_prod = household_CT$Q83Poul,
+                                     grains_foodcrops_prod = household_CT$Q83grai,
+                                     industrial_crops_prod = household_CT$Q83Indus,
+                                     fruit_veg_prod = household_CT$Q83fruit,
+                                     fodder_pasture_prod = household_CT$Q83Fod,
+                                     fish_aquaculture_prod = household_CT$Q83Fish,
+                                     forestry_prod = household_CT$Q83For,
+                                     game_prod = household_CT$Q83Game,
+                                     other_food_prod = household_CT$Q83Oth,
+                                     use_agri_products = household_CT$Q84Use,
+                                     sell_agri_products = household_CT$Q85aSell,
+                                     buyers_agri_products = household_CT$Q85bSProd,
+                                     agri_training = household_CT$Q86aTrain,
+                                     agri_extension = household_CT$Q86aVis,
+                                     agri_grants = household_CT$Q86aGrnt,
+                                     agri_loans = household_CT$Q86aLoan,
+                                     agri_loan_inputs = household_CT$Q86aInpL,
+                                     agri_loan_free = household_CT$Q86aInpF,
+                                     agri_livestock_dipping_vaccines = household_CT$Q86aDip,
+                                     agri_other_assistance = household_CT$Q86aOth,
+                                     agri_gov_assist = household_CT$Q86bAGRIASSIST,
+                                     agri_nongov_assist = household_CT$Q86CAnyASSIST,
+                                     cattle = household_CT$Q87Cattle,
+                                     sheep = household_CT$Q87Sheep,
+                                     goats = household_CT$Q87Goat,
+                                     pigs = household_CT$Q87Pigs,
+                                     chickens = household_CT$Q87Chickens,
+                                     backyard_garden = household_CT$Q88aBack,
+                                     farm_land = household_CT$Q88aFarm,
+                                     school_garden = household_CT$Q88aSchl,
+                                     communal_garden = household_CT$Q88aComm,
+                                     verge_garden = household_CT$Q88aVRd,
+                                     other_crops = household_CT$Q88aOth,
+                                     house_land_ha = household_CT$Q88bHect))
+
+
+household_food <- as.data.frame(cbind(id = household_CT$uqnr,
+                                      place =  household_CT$place,
+                                      beans_peas_nuts = household_CT$Q713BEAN,
+                                      maize_rice_bread_grains = household_CT$Q713MAIZE,
+                                      potatoes_cassava = household_CT$Q713POTA,
+                                      spinach_greens = household_CT$Q713SPINASH,
+                                      other_vegetables = household_CT$Q713OTHVEG,
+                                      fruit = household_CT$Q713FRUIT,
+                                      meat_fish_eggs = household_CT$Q713MEAT,
+                                      dairy = household_CT$Q713dairy,
+                                      sugar = household_CT$Q713SUG,
+                                      oil_butter_fat = household_CT$Q713OIL))
+                                     
+
+# stick the data together
+dat <- as.data.frame(cbind(pointsdata,data_agri,pointsfb))
+
+
+
+# make interactive map
+library(leaflet)
+
+
+
+#### literature synthesis urban food systems south africa ####
+
+setwd("C:\\Users\\Topsy\\Documents\\Food4Cities")
+dat <- read.csv("literature synthesis nodes.csv")
+library(ggplot2)
+
+# value chain x axis
+# vulnerability dimension y axis
+# bubble colour = source
+# need to jitter the points otherwise they overlap
+
+# rescale factors to numeric so ggplot will work with them
+dat$valuechain <- NULL
+dat$valuechain[dat$Value.chain.position=="Inputs"] <- 1
+dat$valuechain[dat$Value.chain.position=="Production"] <- 2
+dat$valuechain[dat$Value.chain.position=="Processing & Storage"] <- 3
+dat$valuechain[dat$Value.chain.position=="Transport, Market & Sales"] <- 4
+dat$valuechain[dat$Value.chain.position=="Consumption"] <- 5
+
+dat$vulnerability <- NULL
+dat$vulnerability[dat$Vulnerability.dimension=="Exposure"] <- 1
+dat$vulnerability[dat$Vulnerability.dimension=="Sensitivity"] <- 2
+dat$vulnerability[dat$Vulnerability.dimension=="Adaptive capacity"] <- 3
+
+#dat$value <- dat$Grant.Pledge...USD/1000 # set sensible display values
+
+# reset x and y labels
+x_labels <- c("Inputs",
+              "Production",
+              "Processing & Storage",
+              "Transport, Market & Sales",
+              "Consumption")
+y_labels <- c("Exposure",
+              "Sensitivity",
+              "Adaptive Capacity")
+
+# set useful labels for the hover text in interactive version
+dat$label <- paste(dat$ï..Node)
+
+p <- ggplot(dat,
+            aes(factor(valuechain),
+                factor(vulnerability),
+#                size=value,
+                color=Source,
+                label=label)) +
+  geom_jitter(alpha=1/2) +
+  labs(x = "Urban Food Value Chain",
+       y = "Dimensions of Vulnerability") +
+  scale_x_discrete(breaks=seq(1,5,1),
+                   labels=x_labels) +
+  scale_y_discrete(breaks=seq(1,3,1),
+                   labels=y_labels) +
+  scale_size_continuous(breaks=seq(0,max(dat$value),5000)) +
+  guides(colour = guide_legend("Source")
+#         , size = guide_legend("Grant value (USD '000)")
+         ) +
+  theme_bw() +
+  theme(line=element_blank())
+
+p
+
+
+# interactive version
+
+# needs a new version with only one axis for plotly's current capacity
+
+q <- ggplot(dat,
+            aes(factor(valuechain),
+                factor(vulnerabilty),
+#                size=value,
+                color=Source,
+                label=label)) +
+  geom_jitter(alpha=1/2) +
+  labs(x = "Urban Food Value Chain",
+       y = "Dimensions of Vulnerability") +
+  scale_x_discrete(breaks=seq(1,5,1),
+                   labels=x_labels) +
+  scale_y_discrete(breaks=seq(1,3,1),
+                   labels=y_labels) +
+  scale_size_continuous(breaks=seq(0,max(dat$value),5000)) +
+  guides(colour = guide_legend("Source")
+#         ,size = "none"
+         ) +
+  theme_bw() +
+  theme(line=element_blank())
+
+ggplotly(q, tooltip = c("value","label"))
+
