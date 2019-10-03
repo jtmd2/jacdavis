@@ -1,0 +1,381 @@
+# general setup
+library(rgdal)
+library(ggmap)
+library(dismo)
+library(rgeos)
+library(dplyr)
+library(data.table)
+
+setwd("G:\\Stats SA\\Stats SA")
+
+# extract shapefile data
+shape_extract <- function(mydata){
+  mydata_ff <- fortify(mydata) # convert polygons to df
+  mydata$ids <- row.names(mydata) # add id variable to df
+  mydata_ff <- left_join(mydata_ff, mydata@data) # join attributes to df
+  return(mydata_ff)
+  # figure out how to save procedurally with different datafile names
+}
+
+# map shapefile data
+shapemap <- function(mydata, myfill,
+                     mylabels, mytitle){
+  map <- ggplot(mydata,
+                aes(long, lat)) +
+    geom_polygon(data=mydata,
+                 aes(group=group,
+                     fill=myfill)) +
+    coord_equal() +
+    labs(x = "Easting (m)", y = "Northing (m)",
+         fill = mylabels) +
+    ggtitle(mytitle) +
+    theme_bw() +
+    theme(line=element_blank())
+  plot(map)
+}
+
+EAs <- readOGR(dsn = "StatsSA_Geography_April2013", 
+               layer = "EA_SA_2011_Apr2013")
+
+df <- EAs@data
+
+table(df$MP_NAME=="Worcester")
+table(df$MP_NAME=="Zweletemba")
+
+Worcester <- subset(EAs,
+                    MP_NAME=="Worcester" & PR_NAME=="Western Cape")
+Zweletemba <- subset(EAs,
+                    MP_NAME=="Zweletemba" & PR_NAME=="Western Cape")
+
+WZ <- subset(EAs,
+             MP_NAME=="Worcester" & PR_NAME=="Western Cape" | MP_NAME=="Zweletemba" & PR_NAME=="Western Cape")
+
+
+dim(EAs)
+dim(Worcester)
+dim(Zweletemba)
+dim(WZ)
+
+rm(EAs)
+
+Wdf <- Worcester@data
+Zdf <- Zweletemba@data
+
+plot(Worcester)
+
+# add ERFs (not sure if necessary with google map)
+#ERFs <- readOGR(dsn = "StatsSA_Geography_April2013", 
+#               layer = "Erven_1August2019")
+#ERFdf <- ERFs@data
+#ERFsWorcester <- subset(ERFs,
+ #                       TOWN=="Worcester")
+#plot(ERFsWorcester)
+
+# match projections
+#proj4string(Worcester)
+#proj4string(ERFs)
+
+# convert projection of object 1 into projection of object 2
+#common.crs <- CRS(proj4string(ERFs))
+#Worcester.reprojected <- spTransform(Worcester, common.crs)
+#plot(Worcester.reprojected)
+
+# join ERFs and EAs
+
+library(maptools)
+
+#ERFs.EAs <- over(ERFsWorcester,Worcester.reprojected)
+
+#plot(ERFs.EAs)
+
+# join google map and EAs
+
+# google api key for map data
+# register_google(key = "")
+
+WorcesterGmap <- get_map(location="Worcester, Breede Valley",
+                         zoom=12)
+
+ZweletembaGmap <- get_map(location="Zweletemba, Breede Valley",
+                         zoom=14)
+
+
+##
+#Worcester@data$id <- rownames(Worcester@data)
+#WorcesterPoints <- fortify(Worcester, region = "id")
+#Worcesterdf <- merge(WorcesterPoints, 
+#                     Worcester@data,
+#                     by = "id")
+#head(Worcesterdf)
+#plot(Worcester)
+
+# plot EAs on ggmap
+
+p <- ggmap(WorcesterGmap, extent = "normal", maprange = FALSE) +
+  geom_polygon(data = fortify(Worcester),
+               aes(long, lat, group=group),
+               fill = "orange",
+               colour = "red",
+               alpha = 0.2) +
+  theme_bw() +
+  coord_map(projection = "mercator",
+            xlim=c(attr(WorcesterGmap, "bb")$ll.lon, attr(WorcesterGmap, "bb")$ur.lon),
+            ylim=c(attr(WorcesterGmap, "bb")$ll.lat, attr(WorcesterGmap, "bb")$ur.lat))
+
+p
+
+q <- ggmap(ZweletembaGmap, extent = "normal", maprange = FALSE) +
+  geom_polygon(data = fortify(Zweletemba),
+               aes(long, lat, group=group),
+               fill = "orange",
+               colour = "red",
+               alpha = 0.2) +
+  theme_bw() +
+  coord_map(projection = "mercator",
+            xlim=c(attr(ZweletembaGmap, "bb")$ll.lon, attr(ZweletembaGmap, "bb")$ur.lon),
+            ylim=c(attr(ZweletembaGmap, "bb")$ll.lat, attr(ZweletembaGmap, "bb")$ur.lat))
+
+q
+
+
+# interactive version
+
+#Wdf2 <- fortify(Worcester)
+
+library(leaflet)
+
+# get centres of polygons for labels
+centers <- data.frame(gCentroid(WZ, byid=TRUE))
+centers.region <- WZ@data$EA_CODE
+
+l <- leaflet(WZ) %>%
+  addProviderTiles(providers$CartoDB) %>%
+  addPolygons(color = "red",
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              fillColor = "orange",
+              popup = paste("EA Code: ", WZ$EA_CODE, "<br>",
+                            "SP_Name: ", WZ$SP_NAME, "<br>"),
+              highlightOptions = highlightOptions(color = "white",
+                                                  weight = 2,
+                                                  bringToFront = TRUE))
+
+library(htmlwidgets)
+saveWidget(l, "Worcester EAs interactive 2.html")
+
+# save to large format tiff
+
+tiff("Worcester_EAs.tiff",
+     width = 14043, height = 9933,
+     units = "px",
+     res = 300)
+print(p)
+dev.off()
+
+tiff("Zweletemba_EAs.tiff",
+     width = 14043, height = 9933,
+     units = "px",
+     res = 300)
+print(q)
+dev.off()
+
+# extract data frame
+small_areas_f <- fortify(small_areas) # convert polygons to df
+small_areas$id <- row.names(small_areas) # add id variable to agri
+head(small_areas@data) # check data before converting
+small_areas_f <- left_join(small_areas_f, small_areas@data) # join attributes to df
+
+map <- ggplot(small_areas_f,
+              aes(long, lat)) +
+  geom_polygon(data=small_areas_f,
+               aes(group=group)) +
+  coord_equal() +
+  labs(x = "Easting (m)", y = "Northing (m)") +
+  ggtitle("Census 2011 Small Areas") +
+  theme_bw() +
+  theme(line=element_blank())
+map
+
+
+# write spatial dataframe
+
+setwd("C:\\Users\\Topsy\\Documents\\work\\Food4Cities")
+writeOGR(WZ,
+         dsn = "Worcester Sampling Frame",
+         layer = "Worcester-Zweletemba EAs",
+         driver = "ESRI Shapefile")
+plot(WZ)
+
+
+leaflet(WZ) %>%
+  addProviderTiles(providers$Esri.WorldImagery) %>%
+  addPolygons(color = "red",
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              fillColor = "orange",
+              popup = paste("EA Code: ", WZ$EA_CODE, "<br>",
+                            "SP_Name: ", WZ$SP_NAME, "<br>"),
+              highlightOptions = highlightOptions(color = "white",
+                                                  weight = 2,
+                                                  bringToFront = TRUE))
+
+#### EA  PDF maps on satellite background
+
+setwd("C:\\Users\\Topsy\\Documents\\work\\Food4Cities")
+EAs <- readOGR(dsn = "Worcester Sampling Frame",
+               layer = "Worcester-Zweletemba EAs")
+dim(EAs)
+names(EAs)
+
+# for each EA, make map
+
+tgt <- EAs[EAs$EA_CODE==16810144,] # select EA
+class(tgt)
+
+# function to print map from EA
+EA_map <- function(tgt){
+  data <- fortify(tgt)
+  EAcode <- tgt$EA_CODE
+  SPname <- tgt$SP_NAME
+  type <- tgt$EA_TYPE
+  centre <- gCentroid(tgt)
+  myLocation = coordinates(centre)
+  label <- paste("EA Code: ", EAcode, "  |  Place Name: ", SPname, "  |  EA Type: ", type, "  |")
+  title <- paste("EA ", EAcode, SPname)
+  filename <- paste(".\\maps\\EA ", EAcode, "hybrid.pdf")
+  EAmap <- ggmap(get_map(location = myLocation,
+                         zoom = 17, scale = 2,
+                         maptype ='hybrid',
+                         color = 'color')) +
+    geom_polygon(aes(x = long, y = lat, group = group), data = data,
+                 colour = 'red', fill = NA, size = 1) +
+    labs(title = title,
+         subtitle = "Worcester, Breede Valley",
+         caption = label) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12),
+      plot.caption = element_text(size = 10))
+  pdf(filename,
+      width     = 11.69,
+      height    = 16.53)
+  plot(EAmap)
+  dev.off()
+}
+
+for(i in 100:146){
+  tgt <- EAs[i,] # select EA
+  EA_map(tgt)}
+
+#
+
+
+table(EAs$EA_CODE[EAs$EA_TYPE=="Collective living quarters"])
+
+
+#
+
+data <- fortify(tgt)
+EAcode <- tgt$EA_CODE
+SPname <- tgt$SP_NAME
+type <- tgt$EA_TYPE
+
+# get central point
+centre <- gCentroid(tgt)
+
+# get ggmap satellite background at that point with polygon mapped
+myLocation = coordinates(centre)
+label <- paste("EA Code: ", EAcode, "  |  Place Name: ", SPname, "  |  EA Type: ", type, "  |")
+title <- paste("EA ", EAcode, SPname)
+filename <- paste("EA ", EAcode, "satellite.pdf")
+filename2 <- paste("EA ", EAcode, "roadmap.pdf")
+filename3 <- paste("EA ", EAcode, "hybrid.pdf")
+
+# make satellite map
+EAmap <- ggmap(get_map(center = myLocation,
+                    zoom = 17, scale = 2,
+                    maptype ='satellite',
+                    color = 'color')) +
+  geom_polygon(aes(x = long, y = lat, group = group), data = data,
+               colour = 'red', fill = NA, size = 1) +
+  labs(title = title,
+       subtitle = "Worcester, Breede Valley",
+       caption = label) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(size = 10))
+
+pdf(filename,
+    width     = 11.69,
+    height    = 16.53)
+EAmap
+dev.off()
+
+
+# make roadmap map
+EAmap2 <- ggmap(get_map(center = myLocation,
+                             zoom = 17, scale = 2,
+                             maptype ='roadmap',
+                             source = "stamen",
+                             color = 'color')) +
+  geom_polygon(aes(x = long, y = lat, group = group), data = data,
+               colour = 'red', fill = NA, size = 1) +
+  labs(title = title,
+       subtitle = "Worcester, Breede Valley",
+       caption = label) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(size = 10))
+
+pdf(filename2)
+EAmap2
+dev.off()
+
+# make hybrid map
+EAmap3 <- ggmap(get_googlemap(center = myLocation,
+                              zoom = 17, scale = 2,
+                              maptype ='hybrid',
+                              color = 'color')) +
+  geom_polygon(aes(x = long, y = lat, group = group), data = data,
+               colour = 'red', fill = NA, size = 1) +
+  labs(title = title,
+       subtitle = "Worcester, Breede Valley",
+       caption = label) +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(size = 10))
+
+pdf(filename3)
+EAmap3
+dev.off()
+
+
+##
+myMap <- get_map(location=myLocation, 
+                 source="google", 
+                 maptype="satellite", 
+                 crop=FALSE)
+ggmap(myMap, zoom = 21, maptype = 'satellite') +
+  geom_polygon(aes(x = long, y = lat, group = group), data = data,
+               colour = 'black', fill = NA, size = .3)
+
+myMap <- get_map(location="Brisbane, Australia", 
+                 source="google", 
+                 maptype="satellite")
+ggmap(myMap, zoom = 2)
+
+
+ggmap(get_googlemap(center = c(lon = 19.49769, lat = -33.63843),
+                    zoom = 15, scale = 2,
+                    maptype ='satellite',
+                    color = 'color'))
+
+#
+
