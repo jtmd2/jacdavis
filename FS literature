@@ -1,0 +1,89 @@
+#### literature synthesis urban food systems south africa ####
+
+setwd("C:\\Users\\Topsy\\Documents\\Food4Cities")
+dat <- read.csv("literature synthesis nodes.csv")
+library(ggplot2)
+
+# value chain x axis
+# vulnerability dimension y axis
+# bubble colour = source
+# need to jitter the points otherwise they overlap
+
+# rescale factors to numeric so ggplot will work with them
+dat$valuechain <- NULL
+dat$valuechain[dat$Value.chain.position=="Inputs"] <- 1
+dat$valuechain[dat$Value.chain.position=="Production"] <- 2
+dat$valuechain[dat$Value.chain.position=="Processing & Storage"] <- 3
+dat$valuechain[dat$Value.chain.position=="Transport, Market & Sales"] <- 4
+dat$valuechain[dat$Value.chain.position=="Consumption"] <- 5
+
+dat$vulnerability <- NULL
+dat$vulnerability[dat$Vulnerability.dimension=="Exposure"] <- 1
+dat$vulnerability[dat$Vulnerability.dimension=="Sensitivity"] <- 2
+dat$vulnerability[dat$Vulnerability.dimension=="Adaptive capacity"] <- 3
+
+#dat$value <- dat$Grant.Pledge...USD/1000 # set sensible display values
+
+# reset x and y labels
+x_labels <- c("Inputs",
+              "Production",
+              "Processing & Storage",
+              "Transport, Market & Sales",
+              "Consumption")
+y_labels <- c("Exposure",
+              "Sensitivity",
+              "Adaptive Capacity")
+
+# set useful labels for the hover text in interactive version
+dat$label <- paste(dat$ï..Node)
+
+p <- ggplot(dat,
+            aes(factor(valuechain),
+                factor(vulnerability),
+#                size=value,
+                color=Source,
+                label=label)) +
+  geom_jitter(alpha=1/2) +
+  labs(x = "Urban Food Value Chain",
+       y = "Dimensions of Vulnerability") +
+  scale_x_discrete(breaks=seq(1,5,1),
+                   labels=x_labels) +
+  scale_y_discrete(breaks=seq(1,3,1),
+                   labels=y_labels) +
+  scale_size_continuous(breaks=seq(0,max(dat$value),5000)) +
+  guides(colour = guide_legend("Source")
+#         , size = guide_legend("Grant value (USD '000)")
+         ) +
+  theme_bw() +
+  theme(line=element_blank())
+
+p
+
+
+# interactive version
+
+# needs a new version with only one axis for plotly's current capacity
+
+q <- ggplot(dat,
+            aes(factor(valuechain),
+                factor(vulnerabilty),
+#                size=value,
+                color=Source,
+                label=label)) +
+  geom_jitter(alpha=1/2) +
+  labs(x = "Urban Food Value Chain",
+       y = "Dimensions of Vulnerability") +
+  scale_x_discrete(breaks=seq(1,5,1),
+                   labels=x_labels) +
+  scale_y_discrete(breaks=seq(1,3,1),
+                   labels=y_labels) +
+  scale_size_continuous(breaks=seq(0,max(dat$value),5000)) +
+  guides(colour = guide_legend("Source")
+#         ,size = "none"
+         ) +
+  theme_bw() +
+  theme(line=element_blank())
+
+ggplotly(q, tooltip = c("value","label"))
+
+
