@@ -1,0 +1,465 @@
+---
+title: "ILRI financial breakdown 2016"
+author: "Jac Davis"
+date: "8 October 2018"
+output: html_document
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+dat <- read.csv("ILRI FS 2016 data.csv") # read in data
+
+# make financial data numeric
+dat$Total.funds.available <- as.numeric(paste(dat$Total.funds.available))
+dat$Accounts.payable <- as.numeric(paste(dat$Accounts.payable))
+dat$Accounts.receivable <- as.numeric(paste(dat$Accounts.receivable))
+dat$Current.year.grant <- as.numeric(paste(dat$Current.year.grant))
+dat$Prior.year.grant <- as.numeric(paste(dat$Prior.year.grant))
+dat$Donor <- as.factor(dat$Donor)
+
+# choose what we're interested in
+dat2 <- dat[,c("Donor",
+              "Total.funds.available",
+              "Current.year.grant", 
+              "Prior.year.grant")] 
+
+# remove very large grants
+dat2 <- dat2[dat2$Current.year.grant<=5000,]
+
+# aggregate money from the same donors, for current year and previous year
+aggdat.current <- aggregate(dat2$Current.year.grant ~ Donor, 
+                            dat2,
+                            sum)
+
+aggdat.prior <- aggregate(dat2$Prior.year.grant ~ Donor, 
+                            dat2,
+                            sum)
+
+# rename variables to sensible names
+colnames(aggdat.current)[colnames(aggdat.current)=="dat2$Current.year.grant"] <- "Current.year.grant"
+
+colnames(aggdat.prior)[colnames(aggdat.prior)=="dat2$Prior.year.grant"] <- "Prior.year.grant"
+
+# make a table of donors and number of grants per donor
+grantsper <- plyr::count(dat2, "Donor")
+
+# define a function for sensible printing of grant values
+vprint <- function(x) formatC((x*1000), 
+                           format="f", 
+                           big.mark = ",", 
+                           digits=0) 
+
+```
+
+ILRI financial breakdown 2016
+
+Source: International Livestock Research Institute 2016 Financial Statements
+
+## Investment funding sources
+
+In the 2016 financial year, ILRI had `r nrow(aggdat.current)` investors, and `r sum(!is.na(dat2$Current.year.grant))` grants, a total investment of USD `r vprint(sum(aggdat.current$Current.year.grant))`. 
+
+
+In 2016:
+
+* Average investment **per donor** was USD `r vprint(mean(aggdat.current$Current.year.grant))`
+
+* Average investment **per grant** was USD `r vprint(mean(dat2$Current.year.grant, na.rm=TRUE))` 
+
+* Average **grants per donor** was `r mean(grantsper$freq)`, with a minimum of `r min(grantsper$freq)` and a maximum of `r max(grantsper$freq)` grants from a single donor.
+
+
+```{r funding sources, echo=FALSE, include=FALSE}
+
+library(ggplot2)
+library(RColorBrewer)
+
+# force colours 
+colourCount = length(unique(aggdat.current$Donor))
+getPalette = colorRampPalette(brewer.pal(9, "RdYlBu"))
+
+# force order by grant size 
+aggdat.current <- aggdat.current[order(-aggdat.current$Current.year.grant),]
+aggdat.current$ord <- order(-aggdat.current$Current.year.grant)
+aggdat.current$Donor <- factor(aggdat.current$Donor,
+                               levels = aggdat.current$Donor[order(aggdat.current$ord)])
+
+
+g <- ggplot(aggdat.current,
+            aes(x="",
+                y=Current.year.grant,
+                fill=Donor)) +
+            geom_bar(width=1, stat="identity") +
+            ggtitle("ILRI 2016 Grant Value")
+gpie <- g + coord_polar("y", start=0) + theme_minimal() +
+#  remove unneccessary lines and numbers
+  theme(axis.text = element_blank()) +
+  theme(axis.ticks = element_blank()) +
+  theme(panel.grid = element_blank()) +
+  scale_fill_manual(values = getPalette(colourCount)) +
+# black border around pie slices
+  geom_bar(stat="identity", color='black') +
+# remove black line from legent
+  guides(fill=guide_legend(override.aes=list(colour=NA)))
+
+tiff('ILRI_2016_donors.tiff',
+     width = 1600, height = 400, units = "px",
+     pointsize = 10)
+gpie
+dev.off()
+```
+
+## Relative value of donors/investors
+
+Pie chart showing the relative value of each donor in 2016. Most of the money comes from few donors (red colours). Many donors give relatively small amounts (yellow and blue colours).
+
+
+```{r pie, echo=FALSE, warnings=FALSE, fig.cap = "Relative donor value 2016", out.width='100%'}
+
+knitr::include_graphics("ILRI_2016_donors.tiff")
+
+```
+
+## Size of grants, compared to their value
+
+Most grants are small, only a few are more than USD 5,000,000.
+
+
+```{r grantsize, echo=FALSE, warnings=FALSE, include=FALSE}
+
+b <- ggplot(dat2,
+            aes(x=Current.year.grant)) +
+            geom_histogram() +
+            ggtitle("ILRI 2016 Grant Value") +
+            labs(x="Value of grant (USD '000)", y="Number of grants") +
+            theme_classic()
+
+tiff('ILRI_2016_grant_numbers.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+b
+dev.off()
+
+```
+
+
+```{r bar, echo=FALSE, warnings=FALSE, fig.cap = "Size of grants 2016", out.width='100%'}
+
+knitr::include_graphics("ILRI_2016_grant_numbers.tiff")
+
+```
+
+## Pareto analysis
+
+```{r pareto, echo=FALSE, warnings=FALSE, include=FALSE}
+
+# force order by grant size 
+dat2 <- dat2[order(dat2$Current.year.grant),]
+dat2$ord <- order(dat2$Current.year.grant)
+
+# calculate cumulative grant value
+dat2$cumulative <- cumsum(dat2$Current.year.grant)
+dat2$cumulative.percent <- dat2$cumulative/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# calculate current year grant as a percent of total grants
+dat2$current.percent <- dat2$Current.year.grant/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# manually set y-axis maximum
+ymax = 100
+
+pareto <- ggplot(dat2,
+                 aes(x=Current.year.grant)) +
+            geom_histogram() +
+            geom_line(aes(y=cumulative.percent*ymax), 
+                       color = rgb(1,0,0),
+                       pch = 16,
+                       size = 1) +
+            scale_y_continuous(sec.axis=sec_axis(~./ymax, name = "Cumulative grant value (%)")) +
+            geom_hline(yintercept=0.8*ymax,
+                       color = rgb(0,1,0),
+                       size = 1,
+                       linetype = "dashed") +
+            ggtitle("ILRI 2016 Cumulative Grant Value") +
+            ggtitle("ILRI 2016 Pareto Chart - Grants") +
+            labs(x="Value of grant (USD '000)", y="Number of grants") +
+            theme_classic() +
+            geom_text(aes(x=500, 
+                        label="80% Cut off", 
+                        y=85),
+                    color=rgb(0,1,0), 
+                    text=element_text(size=11))
+
+
+tiff('ILRI_2016_grant_pareto.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+pareto
+dev.off()
+
+```
+
+```{r pareto1.5, echo=FALSE, warnings=FALSE, include=FALSE}
+
+# force order by reverse grant size 
+dat2 <- dat2[order(-dat2$Current.year.grant),]
+dat2$ord <- order(-dat2$Current.year.grant)
+
+# calculate cumulative grant value
+dat2$cumulative <- cumsum(dat2$Current.year.grant)
+dat2$cumulative.percent <- dat2$cumulative/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# calculate current year grant as a percent of total grants
+dat2$current.percent <- dat2$Current.year.grant/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# manually set y-axis maximum
+ymax = 100
+
+pareto1.5 <- ggplot(dat2,
+                 aes(x=Current.year.grant)) +
+            geom_histogram() +
+            geom_step(aes(y=cumulative.percent*ymax), 
+                       color = rgb(1,0,0),
+                       pch = 16,
+                       size = 1) +
+            scale_y_continuous(sec.axis=sec_axis(~./ymax, name = "Cumulative grant value (%)")) +
+            geom_hline(yintercept=0.8*ymax,
+                       color = rgb(0,1,0),
+                       size = 1,
+                       linetype = "dashed") +
+            ggtitle("ILRI 2016 Cumulative Grant Value") +
+            ggtitle("ILRI 2016 Pareto Chart - Grants") +
+            labs(x="Value of grant (USD '000)", y="Number of grants") +
+            theme_classic() +
+            geom_text(aes(x=500, 
+                        label="80% Cut off", 
+                        y=85),
+                    color=rgb(0,1,0), 
+                    text=element_text(size=11))
+
+
+tiff('ILRI_2016_grant_pareto.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+pareto1.5
+dev.off()
+
+```
+
+
+```{r pareto calculate, echo=FALSE, include=FALSE}
+
+# use splines to calculate approximate 80% cutoff
+# (write this into a function later, perhaps combine pareto analysis plots and functions into a package)
+
+library(stats)
+library(splines)
+library(scales)
+
+spline_int <- as.data.frame(spline(dat2$Current.year.grant, dat2$cumulative.percent))
+
+mspline=lm(spline_int$y~bs(spline_int$x,df=4)) 
+
+pred.spline <- predict(mspline, 
+                       data.frame(x=seq(from=0,
+                                        to=5000, length.out=length(mspline$fitted.values))))
+
+x.preds <- seq(seq(from=0,
+                   to=5000, length.out=length(mspline$fitted.values)))
+x.preds2 <- rescale(x.preds, to=c(0,5000))
+
+plot(x.preds2,pred.spline)
+
+preds <- data.frame(cbind(x.preds2, pred.spline))
+
+eighty <- preds[preds$pred.spline<0.8,]
+
+cutoff <- min(eighty$x.preds2)
+
+# calculate number of grants above and below the cutoff
+
+eighty2 <- dat2[dat2$Current.year.grant>cutoff,]
+nabove <- nrow(eighty2)
+nbelow <- nrow(dat2)-nrow(eighty2)
+
+```
+
+
+
+* 80% of ILRI's cumulative grant income in 2016 was received from grants over USD `r vprint(cutoff)`. 
+
+* There were `r nabove` grants above this cutoff, and `r nbelow` grants below this cutoff.
+
+* That is, 80% of ILRI's grant income in 2016 came from `r nabove/(nbelow+nabove)*100`% of the grants.
+
+
+```{r pareto1.6, echo=FALSE, warnings=FALSE, include=FALSE}
+
+# force order by reverse grant size 
+dat2 <- dat2[order(-dat2$Current.year.grant),]
+dat2$ord <- order(-dat2$Current.year.grant)
+
+# calculate cumulative grant value
+dat2$cumulative <- cumsum(dat2$Current.year.grant)
+dat2$cumulative.percent <- dat2$cumulative/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# calculate current year grant as a percent of total grants
+dat2$current.percent <- dat2$Current.year.grant/sum(dat2$Current.year.grant, na.rm=TRUE)
+
+# manually set y-axis maximum
+ymax = 100
+
+pareto1.6 <- pareto1.5 +
+             geom_vline(xintercept=cutoff, 
+                         color="red", 
+                         linetype="dashed", 
+                         lwd=1) +
+             geom_text(aes(x=cutoff+100,
+                           label="USD 403,900", 
+                           y=50),
+                    colour="red", 
+                    angle=90, 
+                    text=element_text(size=11))
+
+
+tiff('ILRI_2016_grant_pareto.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+pareto1.6
+dev.off()
+
+```
+
+
+
+```{r paretogrants, echo=FALSE, warnings=FALSE, fig.cap = "Cumulative grant value 2016", out.width='100%'}
+
+knitr::include_graphics("ILRI_2016_grant_pareto.tiff")
+
+```
+
+
+
+
+```{r pareto2, echo=FALSE, warnings=FALSE, include=FALSE}
+
+# calculate cumulative donor value
+aggdat.current$cumulative <- cumsum(aggdat.current$Current.year.grant)
+aggdat.current$cumulative.percent <- aggdat.current$cumulative/sum(aggdat.current$Current.year.grant, na.rm=TRUE)
+
+# calculate current year grant as a percent of total grants
+aggdat.current$current.percent <- aggdat.current$Current.year.grant/sum(aggdat.current$Current.year.grant, na.rm=TRUE)
+
+pareto2 <- ggplot(aggdat.current,
+                 aes(x=Donor)) +
+            geom_bar(aes(y=cumulative.percent),
+                     stat="identity") +
+            geom_line(aes(y=cumulative.percent,
+                          group=1),
+                       color = rgb(1,0,0),
+                       size = 1) +
+            geom_hline(yintercept=0.8,
+                       color = rgb(0,1,0),
+                       size = 1,
+                       linetype = "dashed") +
+            ggtitle("ILRI 2016 Cumulative Grant Value") +
+            labs(x="Donor", y="Cumulative grant value (percent)") +
+            theme_classic() +
+            theme(axis.text.x = element_text(angle = 90)) +
+          geom_text(aes(x="Global Crop Diversity Trust", 
+                        label="80% Cut off", 
+                        y=0.85),
+                    color=rgb(0,1,0), 
+                    text=element_text(size=11))
+
+tiff('ILRI_2016_grant_pareto2.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+pareto2
+dev.off()
+
+```
+
+
+
+```{r paretodonors, echo=FALSE, warnings=FALSE, fig.cap = "Cumulative donor value 2016", out.width='100%'}
+
+knitr::include_graphics("ILRI_2016_grant_pareto2.tiff")
+
+```
+
+
+
+```{r pareto3, echo=FALSE, warnings=FALSE, include=FALSE}
+
+# calculate cumulative donor value
+aggdat.current$cumulative <- cumsum(aggdat.current$Current.year.grant)
+aggdat.current$cumulative.percent <- aggdat.current$cumulative/sum(aggdat.current$Current.year.grant, na.rm=TRUE)
+
+# calculate current year grant as a percent of total grants
+aggdat.current$current.percent <- aggdat.current$Current.year.grant/sum(aggdat.current$Current.year.grant, na.rm=TRUE)
+
+pareto3 <- ggplot(aggdat.current,
+                 aes(x=Donor)) +
+            geom_bar(aes(y=Current.year.grant),
+                     stat="identity") +
+            geom_line(aes(y=cumulative.percent,
+                          group=1),
+                       color = rgb(1,0,0),
+                       size = 1) +
+            geom_hline(yintercept=0.8,
+                       color = rgb(0,1,0),
+                       size = 1,
+                       linetype = "dashed") +
+            ggtitle("ILRI 2016 Cumulative Grant Value") +
+            labs(x="Donor", y="Cumulative grant value (percent)") +
+            theme_classic() +
+            theme(axis.text.x = element_text(angle = 90)) +
+          geom_text(aes(x="University of Exeter", 
+                        label="80% Cut off", 
+                        y=0.85),
+                    color=rgb(0,1,0), 
+                    text=element_text(size=11))
+
+tiff('ILRI_2016_grant_pareto3.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+pareto3
+dev.off()
+
+```
+
+
+## Grant value relative to overhead
+
+Expenses over 2016 were USD 84,510,000 (page 13). Average expenses per grant, then, were `r vprint(84510/nrow(dat2))` (just taking a simple average). Average overhead was 'r vprint(0.16*sum(dat2$Current.year.grant, na.rm=TRUE)/nrow(dat2)*1000)` 
+
+
+```{r grantsizeplus, echo=FALSE, warnings=FALSE, include=FALSE}
+
+a <- nrow(dat2)
+b1 <- b + geom_vline(xintercept=46628/a, 
+                         color="red", linetype="dashed", lwd=1) +
+          geom_text(aes(x=46628/a+100, label="Avg. Overhead", y=75),
+                    colour="red", angle=90, text=element_text(size=11))
+  
+
+tiff('ILRI_2016_grant_numbers_with_overhead.tiff',
+     width = 800, height = 400, units = "px",
+     pointsize = 12)
+b1
+dev.off()
+
+```
+
+
+
+The red dotted line shows the average overhead. Grants to the left of the red dotted line have lower value than the average overhead.
+
+```{r barplus, echo=FALSE, warnings=FALSE, fig.cap = "Size of grants relative to average overhead, 2016", out.width='100%'}
+
+knitr::include_graphics("ILRI_2016_grant_numbers_with_overhead.tiff")
+
+```
+
+
