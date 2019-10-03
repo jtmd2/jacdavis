@@ -1,0 +1,246 @@
+## need to make maps separately or else get in trouble for too many requests while testing markdown script
+
+png(filename="Amshotels1.png",height=295,width=500,bg="white")
+Amshotels <- qmap("amsterdam", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude), 
+             data = hotels)
+Amshotels
+dev.off()
+
+png(filename="Amshotels2.png",height=295,width=500,bg="white")
+Amshotels2 <- qmap("amsterdam", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                color="POI", alpha=1/2),
+             data = pois)
+Amshotels2
+dev.off()
+
+png(filename="Amshotels3.png",height=295,width=500,bg="white")
+Amshotels3 <- qmap("amsterdam", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI_nightlife", alpha=1/2),
+             data = poinight)
+Amshotels3
+dev.off()
+
+png(filename="Amshotels4.png",height=295,width=500,bg="white")
+Amshotels4 <- ggmap(get_map("amsterdam", zoom=13), extent="device") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = party_people, size = overall_rating),
+             data = hotels) +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")
+Amshotels4
+dev.off()
+
+png(filename="Amsnightlife.png",height=295,width=500,bg="white")
+Amsnightlife <- qmap("amsterdam", zoom=13, color="bw") +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")+
+  theme(legend.position="none")
+Amsnightlife
+dev.off()
+
+png(filename="Amsnightlifehotels.png",height=295,width=500,bg="white")
+Amsnightlifehotels <- qmap("amsterdam", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude,
+                 alpha=nightlife3, size = 4, colour = "red"), 
+             data = hotels) +
+  theme(legend.position="none")
+Amsnightlifehotels
+dev.off()
+
+
+png(filename="HKhotels1.png",height=295,width=500,bg="white")
+HKhotels <- qmap("kowloon", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude), 
+             data = hotels)
+HKhotels
+dev.off()
+
+png(filename="HKhotels2.png",height=295,width=500,bg="white")
+HKhotels2 <- qmap("kowloon", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI", alpha=1/2),
+             data = pois)
+HKhotels2
+dev.off()
+
+png(filename="HKhotels3.png",height=295,width=500,bg="white")
+HKhotels3 <- qmap("kowloon", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI_nightlife", alpha=1/2),
+             data = poinight)
+HKhotels3
+dev.off()
+
+png(filename="HKhotels4.png",height=295,width=500,bg="white")
+HKhotels4 <- ggmap(get_map("kowloon", zoom=13), extent="device") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = party_people, size = overall_rating),
+             data = hotels) +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")
+HKhotels4
+dev.off()
+
+png(filename="HKnightlife.png",height=295,width=500,bg="white")
+HKnightlife <- qmap("kowloon", zoom=13, color="bw") +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")+
+  theme(legend.position="none")
+HKnightlife
+dev.off()
+
+png(filename="HKnightlifehotels.png",height=295,width=500,bg="white")
+HKnightlifehotels <- qmap("kowloon", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude,
+                 alpha=nightlife3, size = 4, colour = "red"), 
+             data = hotels) +
+  theme(legend.position="none")
+HKnightlifehotels
+dev.off()
+
+
+png(filename="LAhotels1.png",height=295,width=500,bg="white")
+LAhotels <- qmap("central la", zoom=11, color="bw") +
+  geom_point(aes(x = longitude, y = latitude), 
+             data = hotels)
+LAhotels
+dev.off()
+
+png(filename="LAhotels2.png",height=295,width=500,bg="white")
+LAhotels2 <- qmap("central la", zoom=11, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI", alpha=1/2),
+             data = pois)
+LAhotels2
+dev.off()
+
+png(filename="LAhotels3.png",height=295,width=500,bg="white")
+LAhotels3 <- qmap("central la", zoom=11, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI_nightlife", alpha=1/2),
+             data = poinight)
+LAhotels3
+dev.off()
+
+png(filename="LAhotels4.png",height=295,width=500,bg="white")
+LAhotels4 <- ggmap(get_map("central la", zoom=11), extent="device") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = party_people, size = overall_rating),
+             data = hotels) +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")
+LAhotels4
+dev.off()
+
+
+png(filename="LAnightlife.png",height=295,width=500,bg="white")
+LAnightlife <- qmap("central la", zoom=11, color="bw") +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")+
+  theme(legend.position="none")
+LAnightlife
+dev.off()
+
+
+png(filename="LAnightlifehotels.png",height=295,width=500,bg="white")
+LAnightlifehotels <- qmap("central la", zoom=11, color="bw") +
+  geom_point(aes(x = longitude, y = latitude,
+                 alpha=nightlife3, size = 4, colour = "red"), 
+             data = hotels) +
+  theme(legend.position="none")
+LAnightlifehotels
+dev.off()
+
+
+png(filename="Theshotels1.png",height=295,width=500,bg="white")
+geom_point(aes(x = longitude, y = latitude), 
+           data = hotels)
+Theshotels
+dev.off()
+
+png(filename="Theshotels2.png",height=295,width=500,bg="white")
+Theshotels2 <- qmap("thessaloniki", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI", alpha=1/2),
+             data = pois)
+Theshotels2
+dev.off()
+
+png(filename="Theshotels3.png",height=295,width=500,bg="white")
+Theshotels3 <- qmap("thessaloniki", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = "Hotel", size = overall_rating),
+             data = hotels) +
+  geom_point(aes(x = longitude, y = latitude,
+                 color="POI_nightlife", alpha=1/2),
+             data = poinight)
+Theshotels3
+dev.off()
+
+png(filename="Theshotels4.png",height=295,width=500,bg="white")
+Theshotels4 <- ggmap(get_map("thessaloniki", zoom=13), extent="device") +
+  geom_point(aes(x = longitude, y = latitude, 
+                 color = party_people, size = overall_rating),
+             data = hotels) +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")
+Theshotels4
+dev.off()
+
+png(filename="Thesnightlife.png",height=295,width=500,bg="white")
+Thesnightlife <- qmap("thessaloniki", zoom=13, color="bw") +
+  stat_density2d(aes(x = longitude, y = latitude,
+                     fill = ..level.., alpha = ..level..),
+                 size = 2, bins = 4, data = poinight,
+                 geom = "polygon")+
+  theme(legend.position="none")
+Thesnightlife
+dev.off()
+
+png(filename="Thesnightlifehotels.png",height=295,width=500,bg="white")
+Thesnightlifehotels <- qmap("thessaloniki", zoom=13, color="bw") +
+  geom_point(aes(x = longitude, y = latitude,
+                 alpha=nightlife3, size = 4, colour = "red"), 
+             data = hotels) +
+  theme(legend.position="none")
+Thesnightlifehotels
+dev.off()
+
