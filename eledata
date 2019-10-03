@@ -1,0 +1,91 @@
+setwd("C:\\Users\\jtmd2.HSPS-AD\\Downloads")
+
+Binary_Eledata <- read.csv("Binary_Eledata.csv")
+
+library(gbm)
+library(dismo)
+library(raster)
+library(rgdal)
+library(rpart)
+
+#detach(Binary_Eledata)
+
+## Binary data fram 15m resolution. Start Over 7/6/16
+
+#attach(Binary_Eledata)
+View(Binary_Eledata)
+
+dat1 <- Binary_Eledata
+
+#Check dataframe 
+
+head(Binary_Eledata)
+str(Binary_Eledata)
+tail(Binary_Eledata)
+
+#Set predictor variables as numeric or factors
+
+#Binary_Eledata$Hotspot_Resp=as.factor(Binary_Eledata$Hotspot_Resp)
+Binary_Eledata$Soil_Type=as.factor(Binary_Eledata$Soil_Type)
+Binary_Eledata$OPP_Class=as.factor(Binary_Eledata$OPP_Class)
+#str(Binary_Eledata)
+
+Binary_Eledata$Hotspot_Resp=as.numeric(Binary_Eledata$Hotspot_Resp)
+
+model.data3=Binary_Eledata[1:2000,1:19]
+sum(model.data3$Hotspot_Resp)
+
+
+model1=gbm.step(data=model.data3, gbm.x=5:19, gbm.y=4, 
+                family="bernoulli", tree.complexity=5, learning.rate=0.01, 
+                bag.fraction=0.5)
+
+
+model2=gbm.step(data=dat1, gbm.x=5:19, gbm.y=4, 
+                family="bernoulli", tree.complexity=5, learning.rate=0.01, 
+                bag.fraction=0.5)
+
+
+#model4=gbm.step(data=model.data3, gbm.x=5:7, gbm.y=4, 
+#                family="bernoulli", tree.complexity=3, learning.rate=0.01, 
+#                bag.fraction=0.5)
+
+
+eval.data_2<-Binary_Eledata[2001:13141, 5:19]
+#calc.deviance(eval.data_2$Hotspot_Resp,preds,calc.mean=T)
+
+
+plot1 <- gbm.plot(model1, variable.no=0, smooth=FALSE, rug=TRUE, n.plots=9, common.scale=TRUE,
+                  write.title=TRUE, y.label="fitted function", x.label=NULL, show.contrib=TRUE, plot.layout=c(3,3))
+
+plot2 <- gbm.plot(model2, variable.no=0, smooth=FALSE, rug=TRUE, n.plots=9, common.scale=TRUE,
+                  write.title=TRUE, y.label="fitted function", x.label=NULL, show.contrib=TRUE, plot.layout=c(3,3))
+
+
+best.iter<-5000
+model1.pred <- predict.gbm(model1,dat1,best.iter)
+summary(model1.pred)
+
+preds <- predict.gbm(model1, eval.data_2, best.iter) 
+preds
+summary(preds)
+View(preds)
+
+#gbm.predict.grids(model1, eval.data_2, want.grids = F, sp.name = "preds")
+
+tree.list <- seq(100, 10000, by = 100)
+
+plot(Hotspot_Resp,model1.pred, xlab="observed", ylab="predicted")
+
+summary(model1)
+
+print(best.iter)
+ecart1 <- rpart(data=model.data3, Hotspot_Resp~Dist_Forest+Dist_Road+Dist_Build+Dist_Fence+Dist_Underpro+Dist_River+Dist_Cleared+Dist_GC+Elevation+Build_Dens+Aspect+Slope+Soil_Type+OPP_Class+GC_Cov, method="class",minsplit=10,maxdepth=5)
+plot4 <- plot(ecart1,xpd=NA)
+text(ecart1,xpd=NA)
+title(main="Predictors of hotspots")
+
+ecart2 <- rpart(data=dat1, Hotspot_Resp~Dist_Forest+Dist_Road+Dist_Build+Dist_Fence+Dist_Underpro+Dist_River+Dist_Cleared+Dist_GC+Elevation+Build_Dens+Aspect+Slope+Soil_Type+OPP_Class+GC_Cov, method="class",minsplit=10,maxdepth=5)
+plot(ecart2,xpd=NA)
+text(ecart2,xpd=NA)
+title(main="Predictors of hotspots")
