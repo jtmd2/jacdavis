@@ -1,0 +1,24 @@
+# extract shapefile data
+shape_extract <- function(mydata){
+  mydata_ff <- fortify(mydata) # convert polygons to df
+  mydata$ids <- row.names(mydata) # add id variable to df
+  mydata_ff <- left_join(mydata_ff, mydata@data) # join attributes to df
+  return(mydata_ff)
+}
+
+# map shapefile data
+shapemap <- function(mydata, myfill,
+                     mylabels, mytitle){
+  map <- ggplot(mydata,
+                aes(long, lat)) +
+    geom_polygon(data=mydata,
+                 aes(group=group,
+                     fill=myfill)) +
+    coord_equal() +
+    labs(x = "Easting (m)", y = "Northing (m)",
+         fill = mylabels) +
+    ggtitle(mytitle) +
+    theme_bw() +
+    theme(line=element_blank())
+  plot(map)
+}
