@@ -22,3 +22,40 @@ shapemap <- function(mydata, myfill,
     theme(line=element_blank())
   plot(map)
 }
+
+## reading different geo files into R and extracting data ##
+
+# ESRI geodatabase file
+
+# The input file geodatabase
+fgdb <- "C:filepath\\geodatabasename.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(fgdb)
+print(fc_list)
+
+# Read the feature class
+fc <- readOGR(dsn=fgdb,
+              layer="AgriTourism")
+
+# Determine the FC extent, projection, and attribute information
+summary(fc)
+
+# View the feature class
+plot(fc)
+
+# dxf file (AutoCAD)
+
+ents <- sf::st_read("Food_vendors.dxf")
+geoms <- ents$geometry
+length(geoms)
+head(geoms)
+
+plot(st_geometry(ents))
+
+# convert projection of object 1 into projection of object 2
+common.crs <- CRS(proj4string(object_1))
+object_2.reprojected <- spTransform(object_2, common.crs)
+plot(object_2)
+
