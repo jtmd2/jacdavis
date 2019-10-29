@@ -43,7 +43,7 @@ fc <- readOGR(dsn=fgdb,
 for(i in 1:length(fc_list)){
   fc <- readOGR(dsn=fgdb,
                 layer=fc_list[i])
-  nam <- print(fc_list[1])
+  nam <- print(fc_list[i])
   assign(nam, fc)}
 
 # Determine the FC extent, projection, and attribute information
