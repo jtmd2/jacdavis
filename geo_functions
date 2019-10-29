@@ -35,9 +35,16 @@ subset(ogrDrivers(), grepl("GDB", name))
 fc_list <- ogrListLayers(fgdb)
 print(fc_list)
 
-# Read the feature class
+# Read the feature class for one layer
 fc <- readOGR(dsn=fgdb,
               layer="AgriTourism")
+
+# Read the feature class for all layers
+for(i in 1:length(fc_list)){
+  fc <- readOGR(dsn=fgdb,
+                layer=fc_list[i])
+  nam <- print(fc_list[1])
+  assign(nam, fc)}
 
 # Determine the FC extent, projection, and attribute information
 summary(fc)
@@ -45,13 +52,12 @@ summary(fc)
 # View the feature class
 plot(fc)
 
-# dxf file (AutoCAD)
-
+# read dxf file (AutoCAD)
 ents <- sf::st_read("Food_vendors.dxf")
 geoms <- ents$geometry
 length(geoms)
 head(geoms)
-
+# plot the dxf file
 plot(st_geometry(ents))
 
 # convert projection of object 1 into projection of object 2
