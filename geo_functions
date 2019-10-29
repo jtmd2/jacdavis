@@ -52,6 +52,18 @@ summary(fc)
 # View the feature class
 plot(fc)
 
+# extract data for all features
+for(i in 1:length(fc_list)){
+  fc <- readOGR(dsn=fgdb,
+                layer=fc_list[i])
+  df <- fc@data
+  df2 <- cbind(fc@data,coordinates(fc))
+  df2$latitude <- df2$coords.x2
+  df2$longitude <- df2$coords.x1
+  nam <- paste(print(fc_list[i]),"_data")
+  assign(nam,df2)
+  }
+
 # read dxf file (AutoCAD)
 ents <- sf::st_read("Food_vendors.dxf")
 geoms <- ents$geometry
