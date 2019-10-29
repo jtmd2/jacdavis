@@ -77,3 +77,20 @@ common.crs <- CRS(proj4string(object_1))
 object_2.reprojected <- spTransform(object_2, common.crs)
 plot(object_2)
 
+# maps for point data
+pointmap <- function(gmap,df,tgt){
+  p <- ggmap(gmap, 
+             extent = "normal", 
+             maprange = FALSE) +
+    geom_point(data = df,
+               aes(longitude, 
+                   latitude, 
+                   colour=tgt),
+               alpha = 0.5) +
+    theme_bw() +
+    coord_map(projection = "mercator",
+              xlim=c(attr(gmap, "bb")$ll.lon, attr(gmap, "bb")$ur.lon),
+              ylim=c(attr(gmap, "bb")$ll.lat, attr(gmap, "bb")$ur.lat))
+  
+  p
+}
