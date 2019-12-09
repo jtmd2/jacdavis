@@ -1,0 +1,161 @@
+# chord chart for diet types Food4Cities
+
+library(circlize)
+library(migest)
+library(dplyr)
+
+setwd("C:\\Users\\Topsy\\Documents\\work\\Food4Cities\\data")
+dat <- read.csv("food4cities_household_survey_temp.csv")
+
+# select food data 
+foodlist <- c("maize",
+              "pasta",           
+              "instant_noodles",
+              "breakfast_cereal",            
+              "home_bread",
+              "commercial_bread",
+              "vetkoek",
+              "other_cereals",              
+              "white_roots_tubers",
+              "fried_potatoes",              
+              "vit_A_veg",
+              "green_leaf_veg",              
+              "other_veg_raw",
+              "other_veg_fried",             
+              "other_veg_cooked",
+              "vit_A_fruit",                 
+              "other_fruit",
+              "organ_meat_fresh",            
+              "organ_meat_canned",
+              "chicken_fresh",               
+              "chicken_canned",
+              "red_meat_fresh",              
+              "red_meat_canned",
+              "other_meat_fresh",            
+              "other_meat_canned",
+              "high_processed_meat",         
+              "eggs",
+              "fish_fresh",                  
+              "fish_canned",
+              "fish_dried",                  
+              "legumes",
+              "nuts",                        
+              "dairy",
+              "ultra_processed_dairy",       
+              "dairy_alternatives",
+              "oils_fats",                   
+              "sugar",
+              "confectionery",               
+              "cakes",
+              "soft_drink_regular",          
+              "soft_drink_diet",
+              "salty_snacks",                
+              "spices_condiments",
+              "coffee_tea",
+              "alcohol",
+              "fast_food",
+              "restaurant")
+seslist <- c("gender",
+             "age",
+             "household_income",
+             "population")
+foods <- dat[,c(foodlist,seslist)]
+
+foods[foodlist] <- lapply(foods[foodlist], as.numeric)
+
+# create adjacency matrix
+
+total_foods <- colSums(foods[foodlist])
+
+foods_matrix <- as.matrix(foods[foodlist])
+
+co_occurrence <- t(foods_matrix) %*% foods_matrix
+
+graph <- graph.adjacency(co_occurrence,
+                         weighted=TRUE,
+                         mode="undirected",
+                         diag=FALSE)
+
+# make the chord diagram
+
+library(circlize)
+
+q <- chordDiagram(co_occurrence, transparency = 0.5)
+
+jpeg(filename = "chord diagram.jpeg",
+     width = 1200, height = 1200, units = "px", pointsize = 12)
+chordDiagram(co_occurrence, transparency = 0.5)
+dev.off()
+
+# it's really big
+# for now, subset food list for prettier diagrams
+foods$pastas <- foods$pasta + foods$instant_noodles
+foods$cereals <- foods$breakfast_cereal + foods$other_cereals
+foods$bread <- foods$commercial_bread + foods$home_bread
+foods$cake <- foods$cakes + foods$vetkoek
+foods$potatoes <- foods$white_roots_tubers + foods$fried_potatoes
+foods$vegetables <- foods$vit_A_veg + foods$green_leaf_veg + foods$other_veg_cooked + foods$other_veg_fried + foods$other_veg_raw
+foods$fruit <- foods$vit_A_fruit + foods$other_fruit
+foods$meat <- foods$organ_meat_canned + foods$organ_meat_fresh + foods$red_meat_canned + foods$red_meat_fresh + foods$other_meat_canned + foods$other_meat_fresh
+foods$chicken <- foods$chicken_canned + foods$chicken_fresh
+foods$sausage <- foods$high_processed_meat
+foods$fish <- foods$fish_canned + foods$fish_dried + foods$fish_fresh
+foods$nuts_l <- foods$legumes + foods$nuts
+foods$softdrink <- foods$soft_drink_diet + foods$soft_drink_regular
+
+foodgroups <- c("maize",
+                "pastas",
+                "cereals",
+                "bread",
+                "cake",
+                "potatoes",
+                "vegetables",
+                "fruit",
+                "meat",
+                "chicken",
+                "sausage",
+                "fish",
+                "eggs",
+                "dairy",
+                "nuts_l",
+                "sugar",
+                "confectionery",
+                "salty_snacks")
+
+# try for subsets of people
+table(foods$population)
+black <- foods[foods$population==1,]
+white <- foods[foods$population==4,]
+mixed <- foods[foods$population==2,]
+
+men <- foods[foods$gender=="Male",]
+women <- foods[foods$gender=="Female",]
+
+
+# poverty line is R441
+
+foods$below_line <- "No"
+foods$below_line[foods$household_income %in% c("Less than R250",
+                                               "R251 – R500")] <- "Yes"
+
+above_line <- foods[foods$below_line=="No",]
+below_line <- foods[foods$below_line=="Yes",]
+
+# get chord diagrams
+
+tgt <- below_line[foodgroups]
+
+tgt_matrix <- as.matrix(tgt)
+a <- t(tgt_matrix) %*% tgt_matrix
+jpeg(filename = "chord diagram below_line.jpeg",
+     width = 1200, height = 1200, units = "px", pointsize = 12)
+chordDiagram(a, 
+             grid.col = c("aquamarine", "bisque", "blue",
+                          "blueviolet","brown","cadetblue",
+                          "chartreuse","cornflowerblue","cyan",
+                          "darkblue","darkgreen","darkred",
+                          "deeppink","gold","indianred",
+                          "lavender","lightcoral","lightslateblue"),
+             transparency = 0.5)
+dev.off()
+
