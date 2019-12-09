@@ -1,0 +1,683 @@
+# Food4Cities oobn to spatial
+# 25 Nov 2019
+# Jac Davis
+
+# required packages
+library(bnspatial)
+library(igraph)
+library(rgdal)
+library(raster)
+library(sp)
+library(rasterVis)
+# if (!requireNamespace("BiocManager")) install.packages("BiocManager")
+# BiocManager::install('gRbase') # install packages from bioconductor
+library(BiocManager)
+library(gRbase)
+library(RBGL)
+library(gRain)
+library(Rgraphviz)
+library(ggmap)
+library(dismo)
+library(rgeos)
+library(dplyr)
+library(sf)
+library(data.table)
+
+#
+# set working directory
+setwd("~\\Food4Cities")
+
+# load network
+network <- loadNetwork("foodBN.net")
+
+# create spatial variables
+
+# extract shapefile data
+shape_extract <- function(mydata){
+  mydata_ff <- fortify(mydata) # convert polygons to df
+  mydata$ids <- row.names(mydata) # add id variable to df
+  mydata_ff <- left_join(mydata_ff, mydata@data) # join attributes to df
+  return(mydata_ff)
+  # figure out how to save procedurally with different datafile names
+}
+
+# map shapefile data
+shapemap <- function(mydata, myfill,
+                     mylabels, mytitle){
+  map <- ggplot(mydata,
+                aes(long, lat)) +
+    geom_polygon(data=mydata,
+                 aes(group=group,
+                     fill=myfill)) +
+    coord_equal() +
+    labs(x = "Easting (m)", y = "Northing (m)",
+         fill = mylabels) +
+    ggtitle(mytitle) +
+    theme_bw() +
+    theme(line=element_blank())
+  plot(map)
+}
+
+### load each spatial layer and transform to required node states for BN
+# data are numbers of households with "1" in that category (check)
+
+setwd("~\\data\\SA spatial data\\Shapefiles")
+
+# Population size (South Africa Census 2011 Enumeration Areas)
+EAlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                    layer = "EA_SA_2011_Apr2013_BreedValley")
+ea.df <- merge(fortify(EAlayer),
+                as.data.frame(EAlayer),
+                by.x="id",
+                by.y=0)
+names(ea.df)
+
+# Age
+# required nodes - "Number of infants", "Number of elderly", "Number of children"
+# required states - "Zero", "Non_zero"
+Agelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                    layer = "Age_profile_per_Ward")
+age.df <- merge(fortify(Agelayer),
+                as.data.frame(Agelayer),
+                by.x="id",
+                by.y=0)
+names(age.df)
+
+# Income
+
+
+# 
+Cenlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                    layer = "Census2011_data_per_Ward")
+cen.df <- merge(fortify(Cenlayer),
+                as.data.frame(Cenlayer),
+                by.x="id",
+                by.y=0)
+names(cen.df)
+
+
+# join google map and data
+
+# google api key for map data
+# register_google(key = "")
+
+WorcesterGmap <- get_map(location="Worcester, Breede Valley",
+                         zoom=13)
+
+p <- ggmap(WorcesterGmap, extent = "normal", maprange = FALSE) +
+  geom_polygon(data = age.df,
+               aes(long, lat, 
+                   group=group,
+                   fill=X05___09),
+               alpha = 0.5,
+               stat = "identity") +
+  theme_bw() +
+  coord_map(projection = "mercator",
+            xlim=c(attr(WorcesterGmap, "bb")$ll.lon, attr(WorcesterGmap, "bb")$ur.lon),
+            ylim=c(attr(WorcesterGmap, "bb")$ll.lat, attr(WorcesterGmap, "bb")$ur.lat))
+
+p
+
+###
+setwd("~data\\Data_SouthAfrica\\Shapefiles")
+
+Incomelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                    layer = "Annual_household_income_per_Ward")
+
+income.df <- merge(fortify(Incomelayer),
+                as.data.frame(Incomelayer),
+                by.x="id",
+                by.y=0)
+
+# poverty line = R441
+
+income.df$below_line <- as.numeric(income.df$R_1___R_48) + as.numeric(income.df$NO_INCOME) + as.numeric(income.df$R_38_201__) + as.numeric(income.df$R_76_401__)
+
+# household goods
+
+Goodslayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Household_goods_per_Ward")
+
+goods.df <- merge(fortify(Goodslayer),
+                   as.data.frame(Goodslayer),
+                   by.x="id",
+                   by.y=0)
+
+# energy
+
+Energylayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                      layer = "Energy_or_fuel_for_lighting_per_Ward")
+
+energy.df <- merge(fortify(Energylayer),
+                  as.data.frame(Energylayer),
+                  by.x="id",
+                  by.y=0)
+
+# water
+
+Waterlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Source_of_Water_per_Ward")
+
+water.df <- merge(fortify(Waterlayer),
+                   as.data.frame(Waterlayer),
+                   by.x="id",
+                   by.y=0)
+
+water.df$insecure <- as.numeric(water.df$BOREHOLE) + as.numeric(water.df$SPRING) + as.numeric(water.df$RAIN_WATER) + as.numeric(water.df$DAM_POOL_S) + as.numeric(water.df$RIVER_STRE) + as.numeric(water.df$WATER_VEND) + as.numeric(water.df$WATER_TANK)
+
+# farms
+
+Farmslayer <- readOGR(dsn = "Planning", 
+                      layer = "Farms_1August2019")
+
+farms.df <- merge(fortify(Farmslayer),
+                  as.data.frame(Farmslayer),
+                  by.x="id",
+                  by.y=0)
+
+###
+
+p <- ggmap(WorcesterGmap, extent = "normal", maprange = FALSE) +
+  geom_polygon(data = farms.df,
+               aes(long, lat, 
+                   group=group,
+                   fill = as.numeric(HECTARES)),
+               alpha = 0.5) +
+  theme_bw() +
+  scale_fill_gradient(low="white", high="darkgreen") +
+  labs(fill = "Size of farms") +
+  coord_map(projection = "mercator",
+            xlim=c(attr(WorcesterGmap, "bb")$ll.lon, attr(WorcesterGmap, "bb")$ur.lon),
+            ylim=c(attr(WorcesterGmap, "bb")$ll.lat, attr(WorcesterGmap, "bb")$ur.lat))
+
+p
+
+# do the prediction bit from oobn
+
+# sample points in Worcester
+xlim=c(attr(WorcesterGmap, "bb")$ll.lon, attr(WorcesterGmap, "bb")$ur.lon)
+ylim=c(attr(WorcesterGmap, "bb")$ll.lat, attr(WorcesterGmap, "bb")$ur.lat)
+
+set.seed(25)
+preds_lon <- runif(1000,min=xlim[1],max=xlim[2])
+preds_lat <- runif(1000,min=ylim[1],max=ylim[2])
+
+preds <- cbind(preds_lon,preds_lat) # gives 1000 random points in Worcester
+
+# look up input variables for each preds point 
+
+# data supplied by BVM
+
+# load shapes
+setwd("C:\\~data\\Data_SouthAfrica\\Shapefiles")
+
+Incomelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Annual_household_income_per_Ward")
+Agelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Age_profile_per_Ward")
+Energylayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                    layer = "Energy_or_fuel_for_lighting_per_Ward")
+Educationlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Highest_education_level_per_Ward")
+Goodslayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                          layer = "Household_goods_per_Ward")
+Sizelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                      layer = "Household_size_per_Ward")
+Languagelayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                     layer = "Language_per_Ward")
+Grouplayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                         layer = "Population_group_per_Ward")
+Refuselayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                      layer = "Refuse_removal_per_Ward")
+Waterlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Source_of_Water_per_Ward")
+Telecomslayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                      layer = "Telecoms_per_Ward")
+Toiletlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                         layer = "Toilet_facilities_per_Ward")
+Dwellinglayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                       layer = "Type_of_main_dwelling_per_Ward")
+Unemploymentlayer <- readOGR(dsn = "Demographics_Socioeconomics", 
+                         layer = "Unemployment_per_Small_Area")
+
+# extract point values from shapes
+income <- extract(Incomelayer,preds)
+age <- extract(Agelayer,preds)
+energy <- extract(Energylayer,preds)
+education <- extract(Educationlayer,preds)
+goods <- extract(Goodslayer,preds)
+refuse <- extract(Refuselayer,preds)
+water <- extract(Waterlayer,preds)
+telecoms <- extract(Telecomslayer,preds)
+toilet <- extract(Toiletlayer,preds)
+dwelling <- extract(Dwellinglayer,preds)
+unemployment <- extract(Unemploymentlayer,preds)
+
+sims <- cbind(preds,
+              income,
+              age,
+              energy,
+              education,
+              goods,
+              refuse,
+              water,
+              telecoms,
+              toilet,
+              dwelling,
+              unemployment)
+
+rm(list=c("Toiletlayer","Unemploymentlayer",
+          "Waterlayer","Dwellinglayer",
+          "Agelayer","Energylayer","Educationlayer"))
+
+# data from province
+
+library(rgdal)
+
+# The input file geodatabase
+fgdb <- "~data\\SA spatial data\\BreedeRiver.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(fgdb)
+print(fc_list)
+
+# Read the feature class for each layer
+for(i in 1:length(fc_list)){
+  fc <- readOGR(dsn=fgdb,
+                layer=fc_list[i])
+  nam <- print(fc_list[i])
+  assign(nam, fc)}
+
+# extract data for all features
+
+for(i in 1:length(fc_list)){
+  fc <- readOGR(dsn=fgdb,
+                layer=fc_list[i])
+  df <- fc@data
+  df2 <- cbind(fc@data,coordinates(fc))
+  df2$latitude <- df2$coords.x2
+  df2$longitude <- df2$coords.x1
+  nam <- paste0(print(fc_list[i]),"_data")
+  assign(nam,df2)
+}
+
+# first, standardise names: ID, type, latitude, longitude
+# Type depends on which column is informative for each layer, they are different in the source datasets
+AgriInfra_data$ID <- AgriInfra_data$FARM_ID
+AgriInfra_data$Type <- AgriInfra_data$TYPE
+AgriInfra_data$Set <- "Agricultural Infrastructure"
+AgriTourism_data$ID <- AgriTourism_data$FARM_ID
+AgriTourism_data$Type <- AgriTourism_data$DETAIL
+AgriTourism_data$Set <- "Agricultural Tourism"
+Crop_FieldsSummer_data$ID <- Crop_FieldsSummer_data$FIELD_ID
+Crop_FieldsSummer_data$Type <- Crop_FieldsSummer_data$CROPS
+Crop_FieldsSummer_data$longitude = Crop_FieldsSummer_data$`1`
+Crop_FieldsSummer_data$latitude = Crop_FieldsSummer_data$`2`
+Crop_FieldsSummer_data$Set <- "Crop Fields - Summer"
+Crop_FieldsWinter_data$ID <- Crop_FieldsWinter_data$FIELD_ID
+Crop_FieldsWinter_data$Type <- Crop_FieldsWinter_data$CROPS
+Crop_FieldsWinter_data$longitude = Crop_FieldsWinter_data$`1`
+Crop_FieldsWinter_data$latitude = Crop_FieldsWinter_data$`2`
+Crop_FieldsWinter_data$Set <- "Crop Fields - Winter"
+Crop_Shadenetting_data$ID <- Crop_Shadenetting_data$FIELD_ID
+Crop_Shadenetting_data$Type <- Crop_Shadenetting_data$CROPS
+Crop_Shadenetting_data$longitude = Crop_Shadenetting_data$`1`
+Crop_Shadenetting_data$latitude = Crop_Shadenetting_data$`2`
+Crop_Shadenetting_data$Set <- "Crop Fields - Shade Nets"
+DrylandPotential_data$ID <- NULL
+DrylandPotential_data$Type <- DrylandPotential_data$RPP
+DrylandPotential_data$longitude = DrylandPotential_data$`1`
+DrylandPotential_data$latitude = DrylandPotential_data$`2`
+DrylandPotential_data$Set <- "Dryland Potential Index"
+Infr_Homesteads_data$ID <- Infr_Homesteads_data$INFR_ID
+Infr_Homesteads_data$Type <- Infr_Homesteads_data$TYPE
+Infr_Homesteads_data$Set <- "Homesteads"
+
+allgeos <- rbind(AgriInfra_data[,c("Set","ID","Type","latitude","longitude")],
+                 AgriTourism_data[,c("Set","ID","Type","latitude","longitude")],
+                 Crop_FieldsSummer_data[,c("Set","ID","Type","latitude","longitude")],
+                 Crop_FieldsWinter_data[,c("Set","ID","Type","latitude","longitude")],
+                 Crop_Shadenetting_data[,c("Set","ID","Type","latitude","longitude")],
+                 #                 DrylandPotential_data[,c("Set","ID","Type","latitude","longitude")],
+                 Infr_Homesteads_data[,c("Set","ID","Type","latitude","longitude")])
+
+
+# do manually for now #
+tgt <- Infr_Homesteads_data
+tgtname <- "Homesteads"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+
+# add density to data #
+sims$homestead_density <- predict(Homesteads_model,
+                                  newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                             ygr = sims$preds_lon)) 
+
+# processing density
+# density for now, could be distance or another measure
+processing <- allgeos[allgeos$Type=="Abbatoir" |
+                        allgeos$Type=="Agro processing plant" |
+                        allgeos$Type=="Packhouse",]
+tgt <- processing[!is.na(processing$latitude),]
+tgtname <- "Processing"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+
+sims$processing_density <- predict(Processing_model,
+                                   newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                           ygr = sims$preds_lon)) 
+
+
+# production density
+
+# commercial production - crops
+production_commercial_vegetables <- allgeos[allgeos$Type=="Broccoli" |
+                                              allgeos$Type=="Butternut" |
+                                              allgeos$Type=="Pumpkin" |
+                                              allgeos$Type=="Spinach" |
+                                              allgeos$Type=="Tomatoes" |
+                                              allgeos$Type=="Unknown vegetables" |
+                                              allgeos$Type=="Artichokes" |
+                                              allgeos$Type=="Beetroot" |
+                                              allgeos$Type=="Gemsquash" |
+                                              allgeos$Type=="Onions" |
+                                              allgeos$Type=="Waterblommetjies",]
+tgt <- production_commercial_vegetables[!is.na(production_commercial_vegetables$latitude),]
+tgtname <- "Commercial_Production_Vegetables"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+sims$production_commercial_vegetables <- predict(Commercial_Production_Vegetables_model,
+                                                 newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                                         ygr = sims$preds_lon)) 
+
+production_commercial_fruit <- allgeos[allgeos$Type=="Watermelon" |
+                                         allgeos$Type=="Apple" |
+                                         allgeos$Type=="Apple/Pear" |
+                                         allgeos$Type=="Apricot" |
+                                         allgeos$Type=="Apricot/Peach/Nectarine" |
+                                         allgeos$Type=="Cherries" |
+                                         allgeos$Type=="Figs" |
+                                         allgeos$Type=="Lemon" |
+                                         allgeos$Type=="Naartjies" |
+                                         allgeos$Type=="Nectarine" |
+                                         allgeos$Type=="Olives" |
+                                         allgeos$Type=="Oranges" |
+                                         allgeos$Type=="Peach" |
+                                         allgeos$Type=="Pear" |
+                                         allgeos$Type=="Plums" |
+                                         allgeos$Type=="Pomegranate" |
+                                         allgeos$Type=="Table grapes",]
+tgt <- production_commercial_fruit[!is.na(production_commercial_fruit$latitude),]
+tgtname <- "Commercial_Production_Fruit"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+sims$production_commercial_fruit <- predict(Commercial_Production_Fruit_model,newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                                    ygr = sims$preds_lon)) 
+
+
+production_commercial_grains <- allgeos[allgeos$Type=="Lucerne/Medics" |
+                                          allgeos$Type=="Maize" |
+                                          allgeos$Type=="Wheat",]
+tgt <- production_commercial_grains[!is.na(production_commercial_grains$latitude),]
+tgtname <- "Commercial_Production_Grains"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+sims$production_commercial_grains <- predict(Commercial_Production_Grains_model,newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                                     ygr = sims$preds_lon)) 
+
+# commercial production - livestock
+production_commercial_livestock <- allgeos[allgeos$Type=="Aquaculture" |
+                                             allgeos$Type=="Chicken batteries" |
+                                             allgeos$Type=="Dairy" |
+                                             allgeos$Type=="Piggery",]
+tgt <- production_commercial_livestock[!is.na(production_commercial_livestock$latitude),]
+tgtname <- "Commercial_Production_Livestock"
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+nam1 <- paste0(tgtname,"_density") # rename density to match dataset
+assign(nam1,gr)
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+nam2 <- paste0(tgtname,"_model") # rename model to match dataset
+assign(nam2,mod)
+sims$production_commercial_livestock <- predict(Commercial_Production_Livestock_model,
+                                                newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                                        ygr = sims$preds_lon)) 
+
+# food retailer locations, type, and density
+# density of food retail places
+setwd("~data")
+Vendors <- readOGR(dsn = "Worcester_vendors",  # read in data as spatial layer
+                   layer = "Food_vendors")
+df2 <- cbind(Vendors@data,coordinates(Vendors)) # extract data
+df2$latitude <- df2$coords.x2                   # extract latitude from points
+df2$longitude <- df2$coords.x1                  # extract longitude from points
+Vendor_data <- df2                              # create data frame from points
+
+# for now, remove weird points
+Vendor_data_sub <- Vendor_data[Vendor_data$latitude>=-33.95564,]
+
+# separate formal and informal
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Bakkie trader"] <- 0
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Butchery"] <- 1
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Convenience store"] <- 1
+Vendor_data_sub$formal[Vendor_data_sub$Type=="House-shop/Neighbour"] <- 3
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Other: Bakery"] <- 1
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Other: Delicacy store"] <- 1
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Semi-permanent roadside stall"] <- 0
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Spaza shop"] <- 0
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Supermarket"] <- 1
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Temporary stall"] <- 0
+Vendor_data_sub$formal[Vendor_data_sub$Type=="Wholesaler"] <- 1
+Vendors_formal <- Vendor_data_sub[Vendor_data_sub$formal==1,]
+Vendors_informal <- Vendor_data_sub[Vendor_data_sub$formal==0,]
+
+# calculate density manually for now - create function later #
+library(MASS)
+tgt <- Vendors_informal # choose formal or informal vendors as target
+tgtname <- "Food_Retail_Informal" # name target
+dens <- kde2d(tgt$latitude,tgt$longitude) # estimate density based on points
+gr <- data.frame(with(dens, expand.grid(x,y)), as.vector(dens$z)) # put density into a data frame
+names(gr) <- c("xgr", "ygr", "zgr") # name the data frame
+mod <- loess(zgr ~ xgr*ygr, data = gr) # fit localized nonparametric regression to estimate density from x and y
+
+# add vendor density to data #
+sims$vendor_density_informal <- predict(mod,
+                                     newdata = data.frame(xgr = sims$preds_lat,  # predict density from latitude and longitude of household points
+                                                              ygr = sims$preds_lon)) 
+
+
+# write simulated data to csv just in case
+write.csv(sims, 
+          file = "Worcester geo sims v1.csv")
+
+# recode sims into BN-friendly
+sims2 <- sims # create copy
+
+# find a better way to do this
+sims2$Supermarket_density_home <- "Low"
+sims2$Supermarket_density_home[sims2$vendor_density_formal>=mean(!is.na(sims2$vendor_density_formal))] <- "High"
+sims2$Street_vendor_density_home <- "Low"
+sims2$Street_vendor_density_home[sims2$vendor_density_informal>=mean(!is.na(sims2$vendor_density_informal))] <- "High"
+sims2$Wealth <- NA
+incomes <- c("R_1___R_48",
+             "R_4801___R",
+             "R_9601___R",
+             "R_19_601__",
+             "R_38_201__",
+             "R_76_401__",
+             "R_153_801_",
+             "R_307_601_",
+             "R_614_001_",
+             "R_1_228_80",
+             "R_2_457Ã.60")
+# at the moment, household gets whatever category is largest. change later to distribution / probability based estimate
+sims2[incomes] <- lapply(sims2[incomes], as.numeric)
+sims2$household_income <- colnames(sims2[incomes])[apply(sims2[incomes],1,which.max)]
+sims2$Wealth[sims2$household_income=="R_1___R_48"] <- "Low"
+sims2$Wealth[sims2$household_income=="R_76_401__"] <- "Middle"
+sims2$Wealth[sims2$household_income=="R_307_601_"] <- "Middle"
+sims2$Wealth[sims2$household_income=="R_9601___R"] <- "High"
+sims2$Wealth[sims2$household_income=="R_1_228_80"] <- "High"
+
+# number of infants, elderly etc needs to be calculated for each ward, relative to ward size, then converted to a distribution / proportion of likely values
+# takes more time than I have right now
+#sims2$Number_of_infants <- "Non_zero"
+#sims2$Number_of_infants[sims2$Household_infants=="Do not know"] <- "Zero"
+#sims2$Number_of_elderly <- "Non_zero"
+#sims2$Number_of_elderly[sims2$Household_older=="Do not know"] <- "Zero"
+#sims2$Number_of_children[sims2$Household_children=="Do not know"] <- "Zero"
+#sims2$Number_of_children <- "Non_zero"
+#sims2$Household_size <- "One_to_four"
+#sims2$Household_size[sims2$household_size>=5] <- "Five_to_ten"
+#sims2$Household_size[sims2$household_size>=10] <- "Ten_plus"
+
+# for now, leave out race language etc - need to figure out
+#sims2$Race <- "Other"
+#sims2$Race[sims2$population==1] <- "Black"
+#sims2$Race[sims2$population==2] <- "Coloured"
+#sims2$Race[sims2$population==4] <- "White"
+#sims2$Language <- "Other"
+#sims2$Language[sims2$language==1] <- "Afrikaans"
+#sims2$Language[sims2$language==2] <- "English"
+#sims2$Language[sims2$language==4] <- "IsiXhosa"
+
+eds <- c("NO_SCHOOLI",
+             "SOME_PRIMA",
+             "COMPLETED_",
+             "SOME_SECON",
+             "GRADE_12_S",
+             "HIGHER")
+# at the moment, household gets whatever category is largest. change later to distribution / probability based estimate
+sims2[eds] <- lapply(sims2[eds], as.numeric)
+sims2$sumeds <- sims2$NO_SCHOOLI + sims2$SOME_PRIMA + sims2$COMPLETED_ + sims2$SOME_SECON + sims2$GRADE_12_S + sims2$HIGHER
+sims2$primary_prob <- (sims2$NO_SCHOOLI + sims2$SOME_PRIMA + sims2$COMPLETED_)/sims2$sumeds
+sims2$secondary_prob <- (sims2$SOME_SECON + sims2$GRADE_12_S)/sims2$sumeds
+sims2$tertiary_prob <- sims2$HIGHER/sims2$sumeds
+#sims2$education.rand <- sample(c("Primary","Secondary","Tertiary"),
+#                               size=1000,
+#                              replace=TRUE,
+#                               prob=c(sims2$primary_prob,
+#                                      sims2$secondary_prob,
+#                                      sims2$tertiary_prob))
+#eds <- c("primary_prob","secondary_prob","tertiary_prob")
+#sims2$education <- colnames(sims2[eds])[apply(sims2[eds],1,which.max)]
+
+sims2$Education <- "Tertiary"
+sims2$Education[sims2$secondary_prob>=mean(sims2$secondary_prob)] <- "Secondary"
+sims2$Education[sims2$primary_prob>=mean(sims2$primary_prob)] <- "Primary"
+
+sims2$Fridge <- "No"
+sims2$Fridge[sims2$fridge_tech==1]  <- "Yes"
+sims2$Smartphone <- "No"
+sims2$Smartphone[sims2$smart_phone==1]  <- "Yes"
+sims2$Housing_type <- "Formal"
+sims2$Housing_type[sims2$B7 %in% c(2,8,9)] <- "Informal"
+sims2$Water_access <- "Protected"
+sims2$Water_access[sims2$S2.2.5 %in% c(6,7,8,9,10,11,12,13)] <- "Unprotected"
+sims2$Sanitation <- "Unfavourable"
+sims2$Sanitation[sims2$S8.2.1==1] <- "Favourable"
+
+# predict food security using BN based on sims
+sims3 <- sims2 # copy data
+
+# set working directory
+setwd("~Food4Cities")
+
+# load network
+foodnet <- loadHuginNet("BN based on data v2.net")
+
+qb <- querygrain(foodnet)
+
+foodnet[["cptlist"]]
+
+library(bnlearn)
+
+foodnet <- read.net("BN based on data v3.net",debug=FALSE)
+
+learning_dat <- read.csv("BN based on data v3.csv")
+
+foodnet_structure <- bn.net(foodnet)
+
+plot(foodnet_structure)
+
+foodnet_fitted <- bn.fit(foodnet_structure,
+                         learning_dat,
+                         method="bayes")
+
+print(foodnet_fitted$Food_Security)
+
+foodnet_fitted
+
+# generate levels of food security from foodnet_fitted for sims2
+
+news <- c("preds_lon",
+          "preds_lat",
+          "point.ID",
+          "Supermarket_density_home",
+          "Street_vendor_density_home",
+          "Wealth",
+          "Education")
+
+ints <- c("Supermarket_density_home",
+          "Street_vendor_density_home",
+          "Wealth",
+          "Education")
+
+newdata <- sims2[ints]
+newdata <- lapply(newdata, as.factor)
+
+##
+
+foodnet_grain <- as.grain(foodnet_fitted)
+
+querygrain(foodnet_grain,
+           nodes = "Food_Security",
+           type="marginal")
+
+net12 <- setEvidence(foodnet_grain,
+                     evidence = list(Supermarket_density_home="Low",
+                                     Street_vendor_density_home="Low",
+                                     Wealth="Low",
+                                     Education="Primary"))
+
+##
+
+cpquery(foodnet_fitted,
+        Food_Security = "Food_secure")
+
+foodsec_preds <- predict(foodnet_fitted,
+                         response = "Food_Security",
+                         newdata = newdata,
+                         type = "distribution")
